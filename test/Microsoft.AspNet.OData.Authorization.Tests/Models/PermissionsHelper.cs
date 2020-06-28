@@ -1,9 +1,6 @@
-﻿using Microsoft.OData.Edm;
+﻿using System.Linq;
+using Microsoft.OData.Edm;
 using Microsoft.OData.Edm.Vocabularies;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 
 namespace Microsoft.AspNet.OData.Authorization.Tests.Models
 {
@@ -38,7 +35,5 @@ namespace Microsoft.AspNet.OData.Authorization.Tests.Models
             var property = new EdmPropertyConstructor("Permissions", new EdmCollectionExpression(permission));
             return property;
         }
-
-
     }
 }

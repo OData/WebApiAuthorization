@@ -43,9 +43,11 @@ namespace Microsoft.AspNet.OData.Authorization.Tests.Models
             ActionReturnsCollectionFromEntitySet<VIP>(builder, getAllVIPs, "RoutingCustomers");
 
             builder.EntityType<RoutingCustomer>().ComplexProperty<Address>(c => c.Address);
-            builder.EntityType<RoutingCustomer>().Action("GetRelatedRoutingCustomers").ReturnsCollectionFromEntitySet<RoutingCustomer>("RoutingCustomers");
+            builder.EntityType<RoutingCustomer>().Action("GetRelatedRoutingCustomers")
+                .ReturnsCollectionFromEntitySet<RoutingCustomer>("RoutingCustomers");
 
-            ActionConfiguration getBestRelatedRoutingCustomer = builder.EntityType<RoutingCustomer>().Action("GetBestRelatedRoutingCustomer");
+            ActionConfiguration getBestRelatedRoutingCustomer = builder.EntityType<RoutingCustomer>()
+                .Action("GetBestRelatedRoutingCustomer");
             ActionReturnsFromEntitySet<VIP>(builder, getBestRelatedRoutingCustomer, "RoutingCustomers");
 
             ActionConfiguration getVIPS = builder.EntityType<RoutingCustomer>().Collection.Action("GetVIPs");

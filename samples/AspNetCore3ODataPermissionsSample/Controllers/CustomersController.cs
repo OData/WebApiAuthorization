@@ -1,5 +1,6 @@
 ﻿using AspNetCore3ODataPermissionsSample.Models;
 using Microsoft.AspNet.OData;
+using Microsoft.AspNet.OData.Routing;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -100,6 +101,19 @@ namespace AspNetCore3ODataPermissionsSample.Controllers
         public IActionResult Post([FromBody]Customer customer)
         {
             return Created(customer);
+        }
+
+        public IActionResult Delete(int key)
+        {
+            var customer = _context.Customers.FirstOrDefault(c => c.Id == key);
+            _context.Customers.Remove(customer);
+            return Ok(customer);
+        }
+
+        [ODataRoute("GetTopCustomer")]
+        public IActionResult GetTopCustomer()
+        {
+            return Ok(_context.Customers.FirstOrDefault());
         }
     }
 }
