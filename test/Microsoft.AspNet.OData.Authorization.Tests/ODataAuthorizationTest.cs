@@ -31,7 +31,8 @@ namespace Microsoft.AspNet.OData.Test.Authorization
                 typeof(MyProductController),
                 typeof(RoutingCustomersController),
                 typeof(VipCustomerController),
-                typeof(SalesPeopleController)
+                typeof(SalesPeopleController),
+                typeof(TodoItemController)
             };
 
             var server = TestServerFactory.CreateWithEndpointRouting(controllers, endpoints =>
@@ -168,7 +169,7 @@ namespace Microsoft.AspNet.OData.Test.Authorization
         [InlineData("GET", "UnboundFunction", "UnboundFunction", "UnboundFunction")]
         // complex routes requiring ODataRoute attribute
         [InlineData("GET", "Products(10)/RoutingCustomers(20)/Address/Street", "Customer.ReadByKey", "GetProductRoutingCustomerAddressStreet")]
-        public async void RestrictsPermissions(string method, string endpoint, string permission, string expectedResponse)
+        public async void ShouldApplyModelPermissionsToEndpoints(string method, string endpoint, string permission, string expectedResponse)
         {
             var uri = $"http://localhost/odata/{endpoint}";
             // permission forbidden if auth not provided
@@ -185,6 +186,24 @@ namespace Microsoft.AspNet.OData.Test.Authorization
 
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             Assert.Equal(expectedResponse, response.Content.AsObjectContentValue());
+        }
+
+        [Fact]
+        public async void ShouldIgnoreNonODataEndpoints()
+        {
+            var uri = "http://localhost/api/TodoItems";
+            HttpResponseMessage  response = await _client.GetAsync(uri);
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            Assert.Equal("GET TodoItems", response.Content.ReadAsStringAsync().Result);
+
+
+            var message = new HttpRequestMessage(new HttpMethod("GET"), uri);
+            message.Headers.Add("Scope", "Perm.Read");
+
+            response = await _client.SendAsync(message);
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            Assert.Equal("GET TodoItems", response.Content.AsObjectContentValue());
         }
     }
 
@@ -212,6 +231,18 @@ namespace Microsoft.AspNet.OData.Test.Authorization
 
     internal class CustomAuthOptions : AuthenticationSchemeOptions
     {
+    }
+
+    
+    [ApiController]
+    [Route("/api/TodoItems")]
+    public class TodoItemController: Controller
+    {
+        [HttpGet]
+        public string GetTodoItems()
+        {
+            return "GET TodoItems";
+        }
     }
 
     public class ProductsController : ODataController
