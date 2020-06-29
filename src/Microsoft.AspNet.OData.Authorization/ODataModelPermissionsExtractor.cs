@@ -41,12 +41,12 @@ namespace Microsoft.AspNet.OData.Authorization
 
                 if (odataPath.Segments[index] is SingletonSegment singletonSegment)
                 {
-                    return GetSingletonPropertyAccessPermissions(singletonSegment.Singleton, model, method);
+                    return GetSingletonPropertyOperationPermissions(singletonSegment.Singleton, model, method);
                 }
                 else if (odataPath.Segments[index] is KeySegment keySegment)
                 {
                     var entitySet = keySegment.NavigationSource as IEdmEntitySet;
-                    return GetEntityPropertyAccessPermissions(entitySet, model, method);
+                    return GetEntityPropertyOperationPermissions(entitySet, model, method);
                 }
             }
             else
@@ -111,12 +111,12 @@ namespace Microsoft.AspNet.OData.Authorization
 
                     if (odataPath.Segments[entityIndex] is SingletonSegment containingSingleton)
                     {
-                        return GetSingletonPropertyAccessPermissions(containingSingleton.Singleton, model, method);
+                        return GetSingletonPropertyOperationPermissions(containingSingleton.Singleton, model, method);
                     }
                     else if (odataPath.Segments[entityIndex] is KeySegment containingEntity)
                     {
                         var entitySet = containingEntity.NavigationSource as IEdmEntitySet;
-                        return GetEntityPropertyAccessPermissions(entitySet, model, method);
+                        return GetEntityPropertyOperationPermissions(entitySet, model, method);
                     }
                 }
             }
@@ -124,7 +124,7 @@ namespace Microsoft.AspNet.OData.Authorization
             return Enumerable.Empty<PermissionData>();
         }
 
-        private static IEnumerable<PermissionData> GetSingletonPropertyAccessPermissions(IEdmVocabularyAnnotatable target, IEdmModel model, string method)
+        private static IEnumerable<PermissionData> GetSingletonPropertyOperationPermissions(IEdmVocabularyAnnotatable target, IEdmModel model, string method)
         {
             var annotations = target.VocabularyAnnotations(model);
             if (method == "GET")
@@ -139,7 +139,7 @@ namespace Microsoft.AspNet.OData.Authorization
             return Enumerable.Empty<PermissionData>();
         }
 
-        private static IEnumerable<PermissionData> GetEntityPropertyAccessPermissions(IEdmVocabularyAnnotatable target, IEdmModel model, string method)
+        private static IEnumerable<PermissionData> GetEntityPropertyOperationPermissions(IEdmVocabularyAnnotatable target, IEdmModel model, string method)
         {
             var annotations = target.VocabularyAnnotations(model);
             if (method == "GET")
