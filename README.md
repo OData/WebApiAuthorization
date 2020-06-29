@@ -90,7 +90,7 @@ Endpoint                         | Restrictions applied
 ---------------------------------|----------------------
 `GET Customers(1)/Address/City` | `ReadByKeyRestrictions` of `ReadRestrictions` of `Customers`
 `GET TopProduct/Price`          | `ReadRestrictions` of `TopProduct`
-`DELETE|PUT|POST Customers(1)/Email` | `UpdateRestrictions` of `Customers`
+`DELETE or PUT or POST Customers(1)/Email` | `UpdateRestrictions` of `Customers`
 
 ### Operations on navigation property links
 
@@ -100,7 +100,7 @@ Endpoint                         | Restrictions applied
 ---------------------------------|----------------------
 `GET Customers(1)/Orders/$ref` | `ReadByKeyRestrictions` of `ReadRestrictions` of `Customers`
 `GET TopCustomer/Orders/$ref`          | `ReadRestrictions` of `TopProduct`
-`DELETE|PUT|POST Customers(1)/Orders/$ref` | `UpdateRestrictions` of `Customers`
+`DELETE or PUT or POST Customers(1)/Orders/$ref` | `UpdateRestrictions` of `Customers`
 
 ### Navigation properties
 
