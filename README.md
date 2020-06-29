@@ -41,13 +41,13 @@ public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
 
 By default, the library will try extract permissions from the
 authenticated user's claims. Specifically, it will look for
-claims with the key `Scope`. If your app is storing user scopes differently (e.g. using a different key), you can provider a scope finder delegate that returns a list of scopes given the auth context:
+claims with the key `Scope`. If your app is storing user scopes differently (e.g. using a different key), you can provider a scope finder delegate that returns a list of scopes from the current user:
 
 ```c#
 services.AddODataAuthorization(options => {
     options.ScopeFinder = (context) => {
         var scopesClaim = context.User?.FindFirst("Permissions");
-        return Task.FromResult(scopes.Value.Split(" "));
+        return Task.FromResult(scopes.Value.Split(" ").AsEnumerable());
     };
 })
 ```

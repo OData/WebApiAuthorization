@@ -36,7 +36,7 @@ namespace Microsoft.AspNet.OData.Authorization.Tests
             Assert.Equal(shouldSucceed, context.HasSucceeded);
         }
 
-        private Task<IEnumerable<string>> FindScopes(AuthorizationHandlerContext context)
+        private Task<IEnumerable<string>> FindScopes(ScopeFinderContext context)
         {
             var scopes = context.User.FindAll("Permission").Select(c => c.Value);
             return Task.FromResult(scopes);

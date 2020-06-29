@@ -15,6 +15,6 @@ namespace Microsoft.AspNet.OData.Authorization
         /// from the authorization context.
         /// By default the library tries to get scopes from the principal's claims that have "Scope" as the key.
         /// </summary>
-        public Func<AuthorizationHandlerContext, Task<IEnumerable<string>>> ScopesFinder { get; set; }
+        public Func<ScopeFinderContext, Task<IEnumerable<string>>> ScopesFinder { get; set; }
     }
 }

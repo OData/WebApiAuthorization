@@ -11,13 +11,13 @@ namespace Microsoft.AspNet.OData.Authorization
     /// </summary>
     public class ODataAuthorizationHandler : AuthorizationHandler<ODataAuthorizationScopesRequirement>
     {
-        private Func<AuthorizationHandlerContext, Task<IEnumerable<string>>> _scopesFinder;
+        private Func<ScopeFinderContext, Task<IEnumerable<string>>> _scopesFinder;
 
         /// <summary>
         /// Creates an instance of <see cref="ODataAuthorizationHandler"/>.
         /// </summary>
         /// <param name="scopesFinder">User-define function used to retrieve the current user's scopes from the authorization context</param>
-        public ODataAuthorizationHandler(Func<AuthorizationHandlerContext, Task<IEnumerable<string>>> scopesFinder = null) : base()
+        public ODataAuthorizationHandler(Func<ScopeFinderContext, Task<IEnumerable<string>>> scopesFinder = null) : base()
         {
             this._scopesFinder = scopesFinder;
         }
@@ -31,8 +31,9 @@ namespace Microsoft.AspNet.OData.Authorization
         /// <returns></returns>
         protected override async Task HandleRequirementAsync(AuthorizationHandlerContext context, ODataAuthorizationScopesRequirement requirement)
         {
+            var scopeFinderContext = new ScopeFinderContext(context.User);
             var getScopes = this._scopesFinder ?? DefaultFindScopes;
-            var scopes = await getScopes(context);
+            var scopes = await getScopes(scopeFinderContext);
 
             if (scopes != null && scopes.Any(scope => requirement.AllowedScopes.Contains(scope)))
             {
@@ -40,7 +41,7 @@ namespace Microsoft.AspNet.OData.Authorization
             }
         }
 
-        private Task<IEnumerable<string>> DefaultFindScopes(AuthorizationHandlerContext context)
+        private Task<IEnumerable<string>> DefaultFindScopes(ScopeFinderContext context)
         {
             var claims = context.User?.FindAll("Scope");
             var scopes = claims?.Select(c => c.Value) ?? Enumerable.Empty<string>();
