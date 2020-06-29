@@ -1,4 +1,9 @@
-﻿using Microsoft.AspNet.OData.Extensions;
+﻿using System;
+using System.Linq;
+using System.Net;
+using System.Net.Http;
+using System.Threading.Tasks;
+using Microsoft.AspNet.OData.Extensions;
 using Microsoft.AspNet.OData.Routing;
 using Microsoft.AspNet.OData.Authorization.Tests.Abstractions;
 using Microsoft.AspNet.OData.Authorization.Tests.Extensions;
@@ -8,11 +13,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using System;
-using System.Linq;
-using System.Net;
-using System.Net.Http;
-using System.Threading.Tasks;
 using Xunit;
 
 namespace Microsoft.AspNet.OData.Test.Authorization

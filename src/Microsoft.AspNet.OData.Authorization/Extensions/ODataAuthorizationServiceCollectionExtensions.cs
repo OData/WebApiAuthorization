@@ -12,7 +12,7 @@ namespace Microsoft.AspNet.OData.Extensions
     public static class ODataAuthorizationServiceCollectionExtensions
     {
         /// <summary>
-        /// Enables OData model-based authorization
+        /// Adds OData model-based authorization services to the service collection
         /// </summary>
         /// <param name="services">The service collection</param>
         /// <param name="configureOptions">Action to configure the authorization options</param>
