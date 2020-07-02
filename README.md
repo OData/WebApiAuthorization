@@ -56,7 +56,9 @@ For a complete working example, check [the sample application](samples/ODataAuth
 
 ## How permissions are applied
 
-On each request, the library extract from the model the permissions restrictions that should apply to the route being accessed and creates an authorization policy based on those permissions. Deeper down the request pipeline, the AspNetCore filter-based authorization system will call the OData authorization handler to verify whether the current user's permissions match the ones required by the policy.
+On each request, the library extracts from the model the permissions restrictions that should apply to the route being accessed and creates an authorization policy based on those permissions. Deeper down the request pipeline, the AspNetCore filter-based authorization system will call the OData authorization handler to verify whether the current user's permissions match the ones required by the policy.
+
+**Note**: If there are not permission restrictions defined for an some target (entity set/singleton/operation) in the model, then endpoints to that target will be authorized by default regardless of the user's permissions.
 
 ### CRUD operations on entity sets and singleton
 
