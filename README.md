@@ -8,7 +8,7 @@ to an OData service based on `Microsoft.AspNetCore.OData`.
 In your `Startup.cs` file:
 
 ```c#
-using Microsoft.AspNet.OData.Extensions
+using Microsoft.AspNetCore.OData.Authorization
 ```
 ```c#
 public void ConfigureServices(IServiceCollection services)
@@ -52,7 +52,7 @@ services.AddODataAuthorization(options => {
 })
 ```
 
-For a complete working example, check [the sample application](samples/AspNetCore3ODataPermissionsSample).
+For a complete working example, check [the sample application](samples/ODataAuthorizationSample).
 
 ## How permissions are applied
 

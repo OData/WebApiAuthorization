@@ -16,7 +16,7 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Microsoft.AspNet.OData.Authorization.Tests.Abstractions
+namespace Microsoft.AspNetCore.OData.Authorization.Tests.Abstractions
 {
     /// <summary>
     /// Factory for creating a test servers.

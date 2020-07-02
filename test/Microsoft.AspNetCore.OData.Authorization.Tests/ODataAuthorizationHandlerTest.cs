@@ -3,9 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.OData.Authorization;
 using Xunit;
 
-namespace Microsoft.AspNet.OData.Authorization.Tests
+namespace Microsoft.AspNetCore.OData.Authorization.Tests
 {
     public class ODataAuthorizationHandlerTest
     {
