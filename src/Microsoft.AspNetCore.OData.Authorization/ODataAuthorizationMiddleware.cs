@@ -57,7 +57,7 @@ namespace Microsoft.AspNetCore.OData.Authorization
         private void ApplyRestrictions(PermissionData permissionData, HttpContext context)
         {
 
-            var requirement = new ODataAuthorizationScopesRequirement(permissionData.Scopes.Select(s => s.Scope).ToArray());
+            var requirement = new ODataAuthorizationScopesRequirement(permissionData);
             var policy = new AuthorizationPolicyBuilder(permissionData.SchemeName).AddRequirements(requirement).Build();
 
             // We use the AuthorizeFilter instead of relying on the built-in authorization middleware

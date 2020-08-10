@@ -35,7 +35,7 @@ namespace Microsoft.AspNetCore.OData.Authorization
             var getScopes = this._scopesFinder ?? DefaultFindScopes;
             var scopes = await getScopes(scopeFinderContext);
 
-            if (scopes != null && scopes.Any(scope => requirement.AllowedScopes.Contains(scope)))
+            if (requirement.PermissionHandler.VerifyScopes(scopes))
             {
                 context.Succeed(requirement);
             }

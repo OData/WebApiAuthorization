@@ -14,14 +14,14 @@ namespace Microsoft.AspNetCore.OData.Authorization
         /// Creates an instance of <see cref="ODataAuthorizationScopesRequirement"/>.
         /// </summary>
         /// <param name="allowedScopes">The scopes required to authorize a request where this requirement is applied.</param>
-        public ODataAuthorizationScopesRequirement(params string[] allowedScopes)
+        public ODataAuthorizationScopesRequirement(IPermissionHandler permissionHandler)
         {
-            AllowedScopes = allowedScopes;
+            PermissionHandler = permissionHandler;
         }
 
         /// <summary>
         /// The scopes specified by this authorization requirement.
         /// </summary>
-        public IEnumerable<string> AllowedScopes { get; private set; }
+        internal IPermissionHandler PermissionHandler { get; private set; }
     }
 }

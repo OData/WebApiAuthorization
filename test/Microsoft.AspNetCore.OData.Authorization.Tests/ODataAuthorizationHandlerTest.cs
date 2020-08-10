@@ -17,7 +17,8 @@ namespace Microsoft.AspNetCore.OData.Authorization.Tests
         [InlineData(new string[] { }, false)]
         public void ShouldOnlySucceedIfUserHasAnAllowedScope(string[] userScopes, bool shouldSucceed)
         {
-            var requirement = new ODataAuthorizationScopesRequirement("Calendar.Write", "User.Write");
+            
+            var requirement = new ODataAuthorizationScopesRequirement(new PermissionHandler("Calendar.Write", "User.Write"));
             var context = CreateAuthContext("Permission", new[] { requirement }, userScopes);
             var handler = new ODataAuthorizationHandler(FindScopes);
             handler.HandleAsync(context).Wait();
@@ -30,7 +31,7 @@ namespace Microsoft.AspNetCore.OData.Authorization.Tests
         [InlineData(new[] { "Calendar.Read" }, false)]
         public void ShouldGetScopesFromClaimsIfNoScopeFinderProvided(string[] userScopes, bool shouldSucceed)
         {
-            var requirement = new ODataAuthorizationScopesRequirement("Calendar.Write", "User.Write");
+            var requirement = new ODataAuthorizationScopesRequirement(new PermissionHandler("Calendar.Write", "User.Write"));
             var context = CreateAuthContext("Scope", new[] { requirement }, userScopes);
             var handler = new ODataAuthorizationHandler();
             handler.HandleAsync(context).Wait();
@@ -55,6 +56,22 @@ namespace Microsoft.AspNetCore.OData.Authorization.Tests
             var principal = new System.Security.Principal.GenericPrincipal(identity, Array.Empty<string>());
             var context = new AuthorizationHandlerContext(requirements, principal, null);
             return context;
+        }
+    }
+
+    internal class PermissionHandler: IPermissionHandler
+    {
+
+        public PermissionHandler(params string[] scopes)
+        {
+            AllowedScopes = scopes;
+        }
+
+        public IEnumerable<string> AllowedScopes { get; set; }
+
+        public bool VerifyScopes(IEnumerable<string> scopes)
+        {
+            return AllowedScopes.Intersect(scopes).Any();
         }
     }
 }
