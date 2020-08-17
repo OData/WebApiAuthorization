@@ -9,18 +9,18 @@ namespace Microsoft.AspNetCore.OData.Authorization
     /// Combines a set of permission handlers. Returns true
     /// iff all handlers return true.
     /// </summary>
-    internal class AllPermissionsCombiner: IPermissionHandler
+    internal class AllPermissionsCombiner: BasePermissionsCombinder
     {
-        private readonly IEnumerable<IPermissionHandler> _items;
 
-        public AllPermissionsCombiner(IEnumerable<IPermissionHandler> permissions)
-        {
-            _items = permissions;
-        }
+        public AllPermissionsCombiner(params IPermissionHandler[] permissions) : base(permissions)
+        { }
 
-        public bool VerifyScopes(IEnumerable<string> scopes)
+        public AllPermissionsCombiner(IEnumerable<IPermissionHandler> permissions) : base(permissions)
+        { }
+
+        public override bool VerifyScopes(IEnumerable<string> scopes)
         {
-            return _items.All(permissions => permissions.VerifyScopes(scopes));
+            return _permissions.All(permissions => permissions.VerifyScopes(scopes));
         }
     }
 }

@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNet.OData.Builder;
 using Microsoft.OData.Edm;
 using Microsoft.OData.Edm.Vocabularies;
+using Microsoft.OData.UriParser;
 using System.Linq;
 
 namespace AspNetCore3ODataPermissionsSample.Models
@@ -27,8 +28,10 @@ namespace AspNetCore3ODataPermissionsSample.Models
             var updateRestrictions = "Org.OData.Capabilities.V1.UpdateRestrictions";
             var deleteRestrictions = "Org.OData.Capabilities.V1.DeleteRestrictions";
             var operationRestrictions = "Org.OData.Capabilities.V1.OperationRestrictions";
+            var navigationRestrictions = "Org.OData.Capabilities.V1.NavigationRestrictions";
 
             var customers = model.FindDeclaredEntitySet("Customers");
+            var orders = model.FindDeclaredEntitySet("Orders");
             var getTopCustomer = model.SchemaElements.OfType<IEdmOperation>().First(o => o.Name == "GetTopCustomer");
 
 
@@ -43,6 +46,25 @@ namespace AspNetCore3ODataPermissionsSample.Models
             AddPermissionsTo(model, customers, updateRestrictions, "Customers.Update");
             AddPermissionsTo(model, customers, deleteRestrictions, "Customers.Delete");
             AddPermissionsTo(model, getTopCustomer, operationRestrictions, "Customers.GetTop");
+
+            model.AddVocabularyAnnotation(new EdmVocabularyAnnotation(
+                orders,
+                model.FindTerm(readRestrictions),
+                new EdmRecordExpression(
+                    CreatePermissionProperty(new string[] { "Orders.Read" }),
+                    new EdmPropertyConstructor("ReadByKeyRestrictions", CreatePermission("Orders.ReadByKey")))));
+
+            model.AddVocabularyAnnotation(new EdmVocabularyAnnotation(
+                customers,
+                model.FindTerm(navigationRestrictions),
+                new EdmRecordExpression(
+                    new EdmPropertyConstructor("RestrictedProperties", new EdmCollectionExpression(
+                        new EdmRecordExpression(
+                            new EdmPropertyConstructor("NavigationProperty", new EdmNavigationPropertyPathExpression("Default.Container.Customers", "{key}", "Orders"
+                            )),
+                            new EdmPropertyConstructor("ReadRestrictions", new EdmRecordExpression(
+                                CreatePermissionProperty(new string[] { "Customers.ReadOrders" }),
+                                new EdmPropertyConstructor("ReadByKeyRestrictions", CreatePermission(new[] { "Customers.ReadOrderByKey" } ))))))))));
         }
 
         public static void AddPermissionsTo(EdmModel model, IEdmVocabularyAnnotatable target, string restrictionName, params string[] scopes)

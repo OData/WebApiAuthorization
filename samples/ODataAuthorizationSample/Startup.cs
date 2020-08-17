@@ -49,14 +49,18 @@ namespace AspNetCore3ODataPermissionsSample
 
                     return Task.FromResult(permissions.Select(p => p.Value));
                 };
+
+                options.ConfigureAuthentication("AuthScheme")
+                    .AddScheme<CustomAuthentationOptions, CustomAuthenticationHandler>("AuthScheme", options => { });
             });
 
             // OData authorization depends on the AspNetCore authentication and authorization services
             // we need to specify at least one authentication scheme and handler. Here we opt for a simple custom handler defined
             // later in this file, for demonstration purposes. Could also use cookie-based or JWT authentication
-            services.AddAuthentication("AuthScheme")
-                .AddScheme<CustomAuthentationOptions, CustomAuthenticationHandler>("AuthScheme", options => { });
-            services.AddAuthorization();
+            //services.AddAuthentication("AuthScheme")
+            //    .AddScheme<CustomAuthentationOptions, CustomAuthenticationHandler>("AuthScheme", options => { });
+            //services.AddAuthorization();
+            
 
             services.AddRouting();
         }
@@ -71,12 +75,14 @@ namespace AspNetCore3ODataPermissionsSample
 
             app.UseRouting();
 
+            app.UseAuthentication();
             // add OData authorization middleware
             // we don't need to UseAuthorization() if we don't need to handle authorizaiton for non-odata routes
             app.UseODataAuthorization();
 
             app.UseEndpoints(endpoints =>
             {
+                endpoints.Expand().Filter().Count().OrderBy();
                 endpoints.MapODataRoute("odata", "odata", AppModel.GetEdmModel());
             });
         }
