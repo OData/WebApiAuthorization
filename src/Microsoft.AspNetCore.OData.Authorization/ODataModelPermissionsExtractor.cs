@@ -140,7 +140,23 @@ namespace Microsoft.AspNetCore.OData.Authorization
 
             var permissionsChain = new AllPermissionsCombiner();
 
-            for (int i = 0; i < odataPath.Segments.Count; i++)
+            var lastSegmentIndex = odataPath.Segments.Count - 1;
+
+            if (template.EndsWith("$ref"))
+            {
+                // for ref segments, we apply the permission of the entity that contains the navigation property
+                // e.g. for GET Customers(10)/Products/$ref, we apply the read key permissions of Customers
+                // for GET TopCustomer/Products/$ref, we apply the read permissions of TopCustomer
+                // for DELETE Customers(10)/Products(10)/$ref we apply the update permissions of Customers
+                lastSegmentIndex = odataPath.Segments.Count - 2;
+                while (!(odataPath.Segments[lastSegmentIndex] is KeySegment || odataPath.Segments[lastSegmentIndex] is SingletonSegment || odataPath.Segments[lastSegmentIndex] is NavigationPropertySegment)
+                    && lastSegmentIndex > 0)
+                {
+                    lastSegmentIndex--;
+                }
+            }
+
+            for (int i = 0; i <= lastSegmentIndex; i++)
             {
                 var segment = odataPath.Segments[i];
                 

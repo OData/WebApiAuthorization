@@ -127,5 +127,29 @@ namespace AspNetCore3ODataPermissionsSample.Controllers
         {
             return Ok(_context.Customers.Find(key).Orders.FirstOrDefault(o => o.Id == relatedKey));
         }
+
+        [ODataRoute("Customers({key})/Orders({relatedKey})/Title")]
+        public IActionResult GetOrderTitleByKey(int key, int relatedKey)
+        {
+            return Ok(_context.Customers.Find(key)?.Orders.FirstOrDefault(o => o.Id == relatedKey)?.Title);
+        }
+
+        [ODataRoute("Customers({key})/Orders({relatedKey})/$ref")]
+        public IActionResult GetCustomerOrderByKeyRef(int key, int relatedKey)
+        {
+            return Ok(_context.Customers.Find(key)?.Orders.FirstOrDefault(o => o.Id == relatedKey));
+        }
+
+        [ODataRoute("Customers({key})/Order")]
+        public IActionResult GetOrder(int key)
+        {
+            return Ok(_context.Customers.Find(key).Order);
+        }
+
+        [ODataRoute("Customers({key})/Order/Title")]
+        public IActionResult GetOrderTitle(int key)
+        {
+            return Ok(_context.Customers.Find(key)?.Order?.Title);
+        }
     }
 }
