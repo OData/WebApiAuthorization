@@ -250,9 +250,18 @@ namespace Microsoft.AspNetCore.OData.Authorization
 
                         permissionsChain.Add(new AnyPermissionsCombiner(topLevelHandler, nestedHandler));
                     }
-
-
-                    
+                    else if (segment is OperationImportSegment operationImportSegment)
+                    {
+                        var annotations = operationImportSegment.OperationImports.First().Operation.VocabularyAnnotations(model);
+                        var permissions = GetOperationPermissions(annotations);
+                        permissionsChain.Add(new AnyPermissionsCombiner(permissions));
+                    }
+                    else if (segment is OperationSegment operationSegment)
+                    {
+                        var annotations = operationSegment.Operations.First().VocabularyAnnotations(model);
+                        var operationPermissions = GetOperationPermissions(annotations);
+                        permissionsChain.Add(new AnyPermissionsCombiner(operationPermissions));
+                    }
                 }
             }
 
@@ -295,6 +304,24 @@ namespace Microsoft.AspNetCore.OData.Authorization
                                             var readByKeyPermissions =  ExtractPermissionsFromRecord(readByKeyRestrictions);
                                             yield return new AnyPermissionsCombiner(readByKeyPermissions);
                                         }
+                                    }
+                                    else if (method == "POST")
+                                    {
+                                        var insertRestrictions = restrictedProperty.FindProperty("InsertRestrictions")?.Value as IEdmRecordExpression;
+                                        var insertPermissions = ExtractPermissionsFromRecord(insertRestrictions);
+                                        yield return new AnyPermissionsCombiner(insertPermissions);
+                                    }
+                                    else if (method == "PATCH" || method == "PUT" || method == "PATCH")
+                                    {
+                                        var updateRestrictions = restrictedProperty.FindProperty("UpdateRestrictions")?.Value as IEdmRecordExpression;
+                                        var updatePermissions = ExtractPermissionsFromRecord(updateRestrictions);
+                                        yield return new AnyPermissionsCombiner(updatePermissions);
+                                    }
+                                    else if (method == "DELETE")
+                                    {
+                                        var deleteRestrictions = restrictedProperty.FindProperty("DeleteRestrictions")?.Value as IEdmRecordExpression;
+                                        var deletePermissions = ExtractPermissionsFromRecord(deleteRestrictions);
+                                        yield return new AnyPermissionsCombiner(deletePermissions);
                                     }
                                 }
                             }
