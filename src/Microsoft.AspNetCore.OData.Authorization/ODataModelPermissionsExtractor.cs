@@ -133,8 +133,6 @@ namespace Microsoft.AspNetCore.OData.Authorization
             var template = odataPath.PathTemplate;
             var method = context.Request.Method;
             ODataPathSegment prevSegment = null;
-            ODataPathSegment rootSegment = null;
-            IEdmNavigationSource rootNavigation = null;
 
             var segments = new List<ODataPathSegment>();
 
@@ -168,8 +166,10 @@ namespace Microsoft.AspNetCore.OData.Authorization
                         segment is KeySegment ||
                         segment is PropertySegment)
                 {
-                    rootSegment = rootSegment ?? segment;
                     var parent = prevSegment;
+                    var isPropertyAccess = IsNextSegmentOfType<PropertySegment>(odataPath, i) ||
+                        IsNextSegmentOfType<NavigationPropertyLinkSegment>(odataPath, i) ||
+                        IsNextSegmentOfType<NavigationPropertySegment>(odataPath, i);
                     prevSegment = segment;
                     segments.Add(segment);
 
@@ -178,14 +178,16 @@ namespace Microsoft.AspNetCore.OData.Authorization
                     // else extract entity/set  restrictions
                     if (segment is EntitySetSegment entitySetSegment)
                     {
-                        if (rootNavigation == null)
-                        {
-                            rootNavigation = entitySetSegment.EntitySet;
-                        }
 
                         // if Customers(key), then we'll handle it when we reach the key segment
                         // so that we can properly handle ReadByKeyRestrictions
                         if (IsNextSegmentKey(odataPath, i))
+                        {
+                            continue;
+                        }
+
+                        // if Customers/UnboundFunction, then we'll handle it when we reach there
+                        if (IsNextSegmentOfType<OperationSegment>(odataPath, i))
                         {
                             continue;
                         }
@@ -206,20 +208,46 @@ namespace Microsoft.AspNetCore.OData.Authorization
                         var handler = new AnyPermissionsCombiner(permissions);
                         permissionsChain.Add(handler);
                     }
+                    else if (segment is SingletonSegment singletonSegment)
+                    {
+                        // if Customers/UnboundFunction, then we'll handle it when we reach there
+                        if (IsNextSegmentOfType<OperationSegment>(odataPath, i))
+                        {
+                            continue;
+                        }
+
+                        if (isPropertyAccess)
+                        {
+                            var propertyPermissions = GetSingletonPropertyOperationPermissions(singletonSegment.Singleton, model, method);
+                            permissionsChain.Add(new AnyPermissionsCombiner(propertyPermissions));
+                        }
+                        else
+                        {
+                            var permissions = GetNavigationSourceCrudPermissions(singletonSegment.Singleton, model, method);
+                            permissionsChain.Add(new AnyPermissionsCombiner(permissions));
+                        }
+                    }
                     else if (segment is KeySegment keySegment)
                     {
+                        // if Customers/UnboundFunction, then we'll handle it when we reach there
+                        if (IsNextSegmentOfType<OperationSegment>(odataPath, i))
+                        {
+                            continue;
+                        }
+
                         var entitySet = keySegment.NavigationSource as IEdmEntitySet;
-                        var permissions = GetEntityCrudPermissions(entitySet, model, method);
+                        var permissions =  isPropertyAccess ?
+                            GetEntityPropertyOperationPermissions(entitySet, model, method) :
+                            GetEntityCrudPermissions(entitySet, model, method);
+
                         var handler = new AnyPermissionsCombiner(permissions);
 
 
                         if (parent is NavigationPropertySegment)
                         {
-                            var nestedPermissions = GetNavigationPropertyCrudPermisions(
-                            segments,
-                            isTargetByKey: true,
-                            model,
-                            method);
+                            var nestedPermissions = isPropertyAccess ?
+                                GetNavigationPropertyPropertyOperationPermisions(segments, isTargetByKey: true, model, method) :
+                                GetNavigationPropertyCrudPermisions(segments, isTargetByKey: true, model, method);
 
                             handler.AddRange(nestedPermissions);
                         }
@@ -229,6 +257,12 @@ namespace Microsoft.AspNetCore.OData.Authorization
                     }
                     else if (segment is NavigationPropertySegment navSegment)
                     {
+                        // if Customers/UnboundFunction, then we'll handle it when we reach there
+                        if (IsNextSegmentOfType<OperationSegment>(odataPath, i))
+                        {
+                            continue;
+                        }
+
 
                         // if Customers(key), then we'll handle it when we reach the key segment
                         // so that we can properly handle ReadByKeyRestrictions
@@ -273,7 +307,8 @@ namespace Microsoft.AspNetCore.OData.Authorization
             if (pathSegments.Count <= 1) yield break;
 
             var expectedPath = GetPathFromSegments(pathSegments);
-            IEdmVocabularyAnnotatable root = (pathSegments[0] as EntitySetSegment).EntitySet as IEdmVocabularyAnnotatable ?? (pathSegments[0] as SingletonSegment).Singleton;
+            IEdmVocabularyAnnotatable root = (pathSegments[0] as EntitySetSegment)?.EntitySet as IEdmVocabularyAnnotatable ??
+                (pathSegments[0] as SingletonSegment)?.Singleton;
 
             var navRestrictions = root.VocabularyAnnotations(model).Where(a => a.Term.FullName() == ODataCapabilityRestrictionsConstants.NavigationRestrictions);
             foreach (var restriction in navRestrictions)
@@ -331,7 +366,64 @@ namespace Microsoft.AspNetCore.OData.Authorization
             }
         }
 
+        private static IEnumerable<IPermissionHandler> GetNavigationPropertyPropertyOperationPermisions(IList<ODataPathSegment> pathSegments, bool isTargetByKey, IEdmModel model, string method)
+        {
+            if (pathSegments.Count <= 1) yield break;
+
+            var expectedPath = GetPathFromSegments(pathSegments);
+            IEdmVocabularyAnnotatable root = (pathSegments[0] as EntitySetSegment).EntitySet as IEdmVocabularyAnnotatable ?? (pathSegments[0] as SingletonSegment).Singleton;
+
+            var navRestrictions = root.VocabularyAnnotations(model).Where(a => a.Term.FullName() == ODataCapabilityRestrictionsConstants.NavigationRestrictions);
+            foreach (var restriction in navRestrictions)
+            {
+                if (restriction.Value is IEdmRecordExpression record)
+                {
+                    var temp = record.FindProperty("RestrictedProperties");
+                    if (temp?.Value is IEdmCollectionExpression restrictedProperties)
+                    {
+                        foreach (var item in restrictedProperties.Elements)
+                        {
+                            if (item is IEdmRecordExpression restrictedProperty)
+                            {
+                                var navigationProperty = restrictedProperty.FindProperty("NavigationProperty").Value as IEdmPathExpression;
+                                if (navigationProperty?.Path == expectedPath)
+
+                                {
+                                    if (method == "GET")
+                                    {
+                                        var readRestrictions = restrictedProperty.FindProperty("ReadRestrictions")?.Value as IEdmRecordExpression;
+
+                                        var readPermissions = ExtractPermissionsFromRecord(readRestrictions);
+                                        yield return new AnyPermissionsCombiner(readPermissions);
+
+                                        if (isTargetByKey)
+                                        {
+                                            var readByKeyRestrictions = readRestrictions.FindProperty("ReadByKeyRestrictions")?.Value as IEdmRecordExpression;
+                                            var readByKeyPermissions = ExtractPermissionsFromRecord(readByKeyRestrictions);
+                                            yield return new AnyPermissionsCombiner(readByKeyPermissions);
+                                        }
+                                    }
+                                    else if (method == "POST" || method == "PATCH" || method == "PUT" || method == "MERGE" || method == "DELETE")
+                                    {
+                                        var updateRestrictions = restrictedProperty.FindProperty("UpdateRestrictions")?.Value as IEdmRecordExpression;
+                                        var updatePermissions = ExtractPermissionsFromRecord(updateRestrictions);
+                                        yield return new AnyPermissionsCombiner(updatePermissions);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+
         static bool IsNextSegmentKey(Microsoft.AspNet.OData.Routing.ODataPath path, int currentPos)
+        {
+            return IsNextSegmentOfType<KeySegment>(path, currentPos);
+        }
+
+        static bool IsNextSegmentOfType<T>(AspNet.OData.Routing.ODataPath path, int currentPos)
         {
             var maxPos = path.Segments.Count - 1;
             if (maxPos <= currentPos)
@@ -340,13 +432,13 @@ namespace Microsoft.AspNetCore.OData.Authorization
             }
 
             var nextSegment = path.Segments[currentPos + 1];
-            
-            if (nextSegment is KeySegment)
+
+            if (nextSegment is T)
             {
                 return true;
             }
 
-            if (nextSegment is TypeSegment && maxPos > currentPos + 2 && path.Segments[currentPos + 2] is KeySegment)
+            if (nextSegment is TypeSegment && maxPos >= currentPos + 2 && path.Segments[currentPos + 2] is T)
             {
                 return true;
             }

@@ -2,11 +2,13 @@
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNet.OData;
 using Microsoft.AspNet.OData.Extensions;
 using Microsoft.AspNet.OData.Routing;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OData.Authorization.Tests.Abstractions;
 using Microsoft.AspNetCore.OData.Authorization.Tests.Extensions;
@@ -41,24 +43,22 @@ namespace Microsoft.AspNetCore.OData.Authorization.Tests
                 endpoints.MapODataRoute("odata", "odata", model);
             }, services =>
             {
-                services.AddAuthorization();
                 services.AddODataAuthorization((options) =>
                 {
                     options.ScopesFinder = (context) =>
                     {
-                        var perm = context.User?.FindFirst("Permission")?.Value;
-                        if (perm == null)
-                        {
-                            return Task.FromResult(Enumerable.Empty<string>());
-                        }
-
-                        return Task.FromResult(new string[] { perm }.AsEnumerable());
+                        var permissions = context.User?.FindAll("Permission").Select(p => p.Value);
+                        return Task.FromResult(permissions ?? Enumerable.Empty<string>());
                     };
+
+                    options.ConfigureAuthentication("AuthScheme")
+                    .AddScheme<CustomAuthOptions, CustomAuthHandler>("AuthScheme", options => { });
                 });
+
                 services.AddRouting();
-                services.AddAuthentication("AuthScheme").AddScheme<CustomAuthOptions, CustomAuthHandler>("AuthScheme", options => { });
             }, app =>
             {
+                app.UseAuthentication();
                 app.UseODataAuthorization();
             });
 
@@ -156,8 +156,8 @@ namespace Microsoft.AspNetCore.OData.Authorization.Tests
         // dynamic properties
         [InlineData("GET", "SalesPeople(10)/SomeProperty", "SalesPerson.ReadByKey", "GetSalesPersonDynamicProperty(10, SomeProperty)")]
         // navigation properties
-        [InlineData("GET", "Products(10)/RoutingCustomers", "Customer.Read", "GetProductCustomers(10)")]
-        [InlineData("POST", "MyProduct/Microsoft.AspNetCore.OData.Authorization.Tests.Models.SpecialProduct/RoutingCustomers", "Customer.Insert", "PostMyProductCustomer")]
+        [InlineData("GET", "Products(10)/RoutingCustomers", "Product.ReadByKey,Customer.Read", "GetProductCustomers(10)")]
+        [InlineData("POST", "MyProduct/Microsoft.AspNetCore.OData.Authorization.Tests.Models.SpecialProduct/RoutingCustomers", "MyProduct.Update,Customer.Insert", "PostMyProductCustomer")]
         // $ref
         [InlineData("GET", "Products(10)/RoutingCustomers(20)/$ref", "Product.ReadByKey", "GetProductCustomerRef(10, 20)")]
         [InlineData("POST", "MyProduct/Microsoft.AspNetCore.OData.Authorization.Tests.Models.SpecialProduct/RoutingCustomers/$ref", "MyProduct.Update", "CreateMyProductCustomerRef")]
@@ -169,8 +169,8 @@ namespace Microsoft.AspNetCore.OData.Authorization.Tests
         // unbound function
         [InlineData("GET", "UnboundFunction", "UnboundFunction", "UnboundFunction")]
         // complex routes requiring ODataRoute attribute
-        [InlineData("GET", "Products(10)/RoutingCustomers(20)/Address/Street", "Customer.ReadByKey", "GetProductRoutingCustomerAddressStreet")]
-        public async void ShouldApplyModelPermissionsToEndpoints(string method, string endpoint, string permission, string expectedResponse)
+        [InlineData("GET", "Products(10)/RoutingCustomers(20)/Address/Street", "Product.Read,Customer.ReadByKey", "GetProductRoutingCustomerAddressStreet")]
+        public async void ShouldApplyModelPermissionsToEndpoints(string method, string endpoint, string permissions, string expectedResponse)
         {
             var uri = $"http://localhost/odata/{endpoint}";
             // permission forbidden if auth not provided
@@ -181,7 +181,7 @@ namespace Microsoft.AspNetCore.OData.Authorization.Tests
 
             // request succeeds if permission is correct
             var message = new HttpRequestMessage(new HttpMethod(method), uri);
-            message.Headers.Add("Scope", permission);
+            message.Headers.Add("Scopes", permissions);
 
             response = await _client.SendAsync(message);
 
@@ -217,11 +217,11 @@ namespace Microsoft.AspNetCore.OData.Authorization.Tests
         protected override Task<AuthenticateResult> HandleAuthenticateAsync()
         {
             var identity = new System.Security.Principal.GenericIdentity("Me");
-            var scopeValues = Request.Headers["Scope"];
+            var scopeValues = Request.Headers["Scopes"];
             if (scopeValues.Count != 0)
             {
-                var scope = scopeValues.ToArray()[0];
-                identity.AddClaim(new System.Security.Claims.Claim("Permission", scope));
+                var scopes = scopeValues.ToArray()[0].Split(',');
+                identity.AddClaims(scopes.Select(scope => new Claim("Permission", scope)));
             }
 
             var principal = new System.Security.Principal.GenericPrincipal(identity, Array.Empty<string>());
