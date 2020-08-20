@@ -15,6 +15,9 @@ namespace AspNetCore3ODataPermissionsSample.Models
             builder.EntitySet<Order>("Orders");
             builder.Function("GetTopCustomer").ReturnsFromEntitySet<Customer>("Customers");
 
+            var customerEntity = builder.EntityType<Customer>();
+            customerEntity.Function("GetAge").Returns<int>();
+
             var model = builder.GetEdmModel();
             AddPermissions(model as EdmModel);
 
@@ -33,6 +36,7 @@ namespace AspNetCore3ODataPermissionsSample.Models
             var customers = model.FindDeclaredEntitySet("Customers");
             var orders = model.FindDeclaredEntitySet("Orders");
             var getTopCustomer = model.SchemaElements.OfType<IEdmOperation>().First(o => o.Name == "GetTopCustomer");
+            var getAge = model.SchemaElements.OfType<IEdmOperation>().First(o => o.Name == "GetAge");
 
 
             model.AddVocabularyAnnotation(new EdmVocabularyAnnotation(
@@ -46,6 +50,7 @@ namespace AspNetCore3ODataPermissionsSample.Models
             AddPermissionsTo(model, customers, updateRestrictions, "Customers.Update");
             AddPermissionsTo(model, customers, deleteRestrictions, "Customers.Delete");
             AddPermissionsTo(model, getTopCustomer, operationRestrictions, "Customers.GetTop");
+            AddPermissionsTo(model, getAge, operationRestrictions, "Customer.GetAge");
 
             model.AddVocabularyAnnotation(new EdmVocabularyAnnotation(
                 orders,
