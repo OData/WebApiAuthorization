@@ -74,7 +74,7 @@ namespace Microsoft.AspNetCore.OData.Authorization
                             continue;
                         }
 
-                        IEnumerable<IScopesEvaluator> permissions;
+                        IScopesEvaluator permissions;
                         
                         permissions = GetNavigationPropertyCrudPermisions(
                             segments,
@@ -82,7 +82,7 @@ namespace Microsoft.AspNetCore.OData.Authorization
                             model,
                             method);
 
-                        if (!permissions.Any())
+                        if (permissions is DefaultScopesEvaluator)
                         {
                             permissions = GetNavigationSourceCrudPermissions(entitySetSegment.EntitySet, model, method);
                         }
@@ -122,7 +122,7 @@ namespace Microsoft.AspNetCore.OData.Authorization
                             GetEntityPropertyOperationPermissions(entitySet, model, method) :
                             GetEntityCrudPermissions(entitySet, model, method);
 
-                        var handler = new WithOrScopesCombiner(permissions);
+                        var evaluator = new WithOrScopesCombiner(permissions);
 
 
                         if (parent is NavigationPropertySegment)
@@ -131,11 +131,11 @@ namespace Microsoft.AspNetCore.OData.Authorization
                                 GetNavigationPropertyPropertyOperationPermisions(segments, isTargetByKey: true, model, method) :
                                 GetNavigationPropertyCrudPermisions(segments, isTargetByKey: true, model, method);
 
-                            handler.AddRange(nestedPermissions);
+                            evaluator.Add(nestedPermissions);
                         }
                         
 
-                        permissionsChain.Add(handler);
+                        permissionsChain.Add(evaluator);
                     }
                     else if (segment is NavigationPropertySegment navSegment)
                     {
@@ -154,7 +154,7 @@ namespace Microsoft.AspNetCore.OData.Authorization
                         }
 
                         var topLevelPermissions = GetNavigationSourceCrudPermissions(navSegment.NavigationSource as IEdmVocabularyAnnotatable, model, method);
-                        var topLevelHandler = new WithOrScopesCombiner(topLevelPermissions);
+                        var segmentEvaluator = new WithOrScopesCombiner(topLevelPermissions);
 
                         var nestedPermissions = GetNavigationPropertyCrudPermisions(
                             segments,
@@ -162,9 +162,9 @@ namespace Microsoft.AspNetCore.OData.Authorization
                             model,
                             method);
 
-                        var nestedHandler = new WithOrScopesCombiner(nestedPermissions);
-
-                        permissionsChain.Add(new WithOrScopesCombiner(topLevelHandler, nestedHandler));
+                        
+                        segmentEvaluator.Add(nestedPermissions);
+                        permissionsChain.Add(segmentEvaluator);
                     }
                     else if (segment is OperationImportSegment operationImportSegment)
                     {
@@ -184,9 +184,12 @@ namespace Microsoft.AspNetCore.OData.Authorization
             return permissionsChain;
         }
 
-        private static IEnumerable<IScopesEvaluator> GetNavigationPropertyCrudPermisions(IList<ODataPathSegment> pathSegments, bool isTargetByKey, IEdmModel model, string method)
+        private static IScopesEvaluator GetNavigationPropertyCrudPermisions(IList<ODataPathSegment> pathSegments, bool isTargetByKey, IEdmModel model, string method)
         {
-            if (pathSegments.Count <= 1) yield break;
+            if (pathSegments.Count <= 1)
+            {
+                return new DefaultScopesEvaluator();
+            }
 
             var expectedPath = GetPathFromSegments(pathSegments);
             IEdmVocabularyAnnotatable root = (pathSegments[0] as EntitySetSegment)?.EntitySet as IEdmVocabularyAnnotatable ??
@@ -211,34 +214,35 @@ namespace Microsoft.AspNetCore.OData.Authorization
                                     if (method == "GET")
                                     {
                                         var readRestrictions = restrictedProperty.FindProperty("ReadRestrictions")?.Value as IEdmRecordExpression;
-                                      
                                         var readPermissions = ExtractPermissionsFromRecord(readRestrictions);
-                                        yield return new WithOrScopesCombiner(readPermissions);
+                                        var evaluator = new WithOrScopesCombiner(readPermissions);
                                         
                                         if (isTargetByKey)
                                         {
                                             var readByKeyRestrictions = readRestrictions.FindProperty("ReadByKeyRestrictions")?.Value as IEdmRecordExpression;
                                             var readByKeyPermissions =  ExtractPermissionsFromRecord(readByKeyRestrictions);
-                                            yield return new WithOrScopesCombiner(readByKeyPermissions);
+                                            evaluator.AddRange(readByKeyPermissions);
                                         }
+
+                                        return evaluator;
                                     }
                                     else if (method == "POST")
                                     {
                                         var insertRestrictions = restrictedProperty.FindProperty("InsertRestrictions")?.Value as IEdmRecordExpression;
                                         var insertPermissions = ExtractPermissionsFromRecord(insertRestrictions);
-                                        yield return new WithOrScopesCombiner(insertPermissions);
+                                        return new WithOrScopesCombiner(insertPermissions);
                                     }
                                     else if (method == "PATCH" || method == "PUT" || method == "PATCH")
                                     {
                                         var updateRestrictions = restrictedProperty.FindProperty("UpdateRestrictions")?.Value as IEdmRecordExpression;
                                         var updatePermissions = ExtractPermissionsFromRecord(updateRestrictions);
-                                        yield return new WithOrScopesCombiner(updatePermissions);
+                                        return new WithOrScopesCombiner(updatePermissions);
                                     }
                                     else if (method == "DELETE")
                                     {
                                         var deleteRestrictions = restrictedProperty.FindProperty("DeleteRestrictions")?.Value as IEdmRecordExpression;
                                         var deletePermissions = ExtractPermissionsFromRecord(deleteRestrictions);
-                                        yield return new WithOrScopesCombiner(deletePermissions);
+                                        return new WithOrScopesCombiner(deletePermissions);
                                     }
                                 }
                             }
@@ -246,11 +250,16 @@ namespace Microsoft.AspNetCore.OData.Authorization
                     }
                 }
             }
+
+            return new DefaultScopesEvaluator();
         }
 
-        private static IEnumerable<IScopesEvaluator> GetNavigationPropertyPropertyOperationPermisions(IList<ODataPathSegment> pathSegments, bool isTargetByKey, IEdmModel model, string method)
+        private static IScopesEvaluator GetNavigationPropertyPropertyOperationPermisions(IList<ODataPathSegment> pathSegments, bool isTargetByKey, IEdmModel model, string method)
         {
-            if (pathSegments.Count <= 1) yield break;
+            if (pathSegments.Count <= 1)
+            {
+                return new DefaultScopesEvaluator();
+            }
 
             var expectedPath = GetPathFromSegments(pathSegments);
             IEdmVocabularyAnnotatable root = (pathSegments[0] as EntitySetSegment).EntitySet as IEdmVocabularyAnnotatable ?? (pathSegments[0] as SingletonSegment).Singleton;
@@ -276,20 +285,22 @@ namespace Microsoft.AspNetCore.OData.Authorization
                                         var readRestrictions = restrictedProperty.FindProperty("ReadRestrictions")?.Value as IEdmRecordExpression;
 
                                         var readPermissions = ExtractPermissionsFromRecord(readRestrictions);
-                                        yield return new WithOrScopesCombiner(readPermissions);
+                                        var evaluator = new WithOrScopesCombiner(readPermissions);
 
                                         if (isTargetByKey)
                                         {
                                             var readByKeyRestrictions = readRestrictions.FindProperty("ReadByKeyRestrictions")?.Value as IEdmRecordExpression;
                                             var readByKeyPermissions = ExtractPermissionsFromRecord(readByKeyRestrictions);
-                                            yield return new WithOrScopesCombiner(readByKeyPermissions);
+                                            evaluator.AddRange(readByKeyPermissions);
                                         }
+
+                                        return evaluator;
                                     }
                                     else if (method == "POST" || method == "PATCH" || method == "PUT" || method == "MERGE" || method == "DELETE")
                                     {
                                         var updateRestrictions = restrictedProperty.FindProperty("UpdateRestrictions")?.Value as IEdmRecordExpression;
                                         var updatePermissions = ExtractPermissionsFromRecord(updateRestrictions);
-                                        yield return new WithOrScopesCombiner(updatePermissions);
+                                        return new WithOrScopesCombiner(updatePermissions);
                                     }
                                 }
                             }
@@ -297,10 +308,12 @@ namespace Microsoft.AspNetCore.OData.Authorization
                     }
                 }
             }
+
+            return new DefaultScopesEvaluator();
         }
 
 
-        static bool IsNextSegmentKey(Microsoft.AspNet.OData.Routing.ODataPath path, int currentPos)
+        static bool IsNextSegmentKey(AspNet.OData.Routing.ODataPath path, int currentPos)
         {
             return IsNextSegmentOfType<KeySegment>(path, currentPos);
         }
@@ -357,7 +370,7 @@ namespace Microsoft.AspNetCore.OData.Authorization
             return string.Join('/', pathParts);
         }
 
-        private static IEnumerable<PermissionData> GetSingletonPropertyOperationPermissions(IEdmVocabularyAnnotatable target, IEdmModel model, string method)
+        private static IScopesEvaluator GetSingletonPropertyOperationPermissions(IEdmVocabularyAnnotatable target, IEdmModel model, string method)
         {
             var annotations = target.VocabularyAnnotations(model);
             if (method == "GET")
@@ -369,10 +382,10 @@ namespace Microsoft.AspNetCore.OData.Authorization
                 return GetUpdatePermissions(annotations);
             }
 
-            return Enumerable.Empty<PermissionData>();
+            return new DefaultScopesEvaluator();
         }
 
-        private static IEnumerable<IScopesEvaluator> GetEntityPropertyOperationPermissions(IEdmVocabularyAnnotatable target, IEdmModel model, string method)
+        private static IScopesEvaluator GetEntityPropertyOperationPermissions(IEdmVocabularyAnnotatable target, IEdmModel model, string method)
         {
             var annotations = target.VocabularyAnnotations(model);
             if (method == "GET")
@@ -384,10 +397,10 @@ namespace Microsoft.AspNetCore.OData.Authorization
                 return GetUpdatePermissions(annotations);
             }
 
-            return Enumerable.Empty<PermissionData>();
+            return new DefaultScopesEvaluator();
         }
 
-        private static IEnumerable<PermissionData> GetNavigationSourceCrudPermissions(IEdmVocabularyAnnotatable target, IEdmModel model, string method)
+        private static IScopesEvaluator GetNavigationSourceCrudPermissions(IEdmVocabularyAnnotatable target, IEdmModel model, string method)
         {
             var annotations = target.VocabularyAnnotations(model);
             if (method == "GET")
@@ -407,10 +420,10 @@ namespace Microsoft.AspNetCore.OData.Authorization
                 return GetDeletePermissions(annotations);
             }
 
-            return Enumerable.Empty<PermissionData>();
+            return new DefaultScopesEvaluator();
         }
 
-        private static IEnumerable<IScopesEvaluator> GetEntityCrudPermissions(IEdmVocabularyAnnotatable target, IEdmModel model, string method)
+        private static IScopesEvaluator GetEntityCrudPermissions(IEdmVocabularyAnnotatable target, IEdmModel model, string method)
         {
             var annotations = target.VocabularyAnnotations(model);
 
@@ -427,53 +440,61 @@ namespace Microsoft.AspNetCore.OData.Authorization
                 return GetDeletePermissions(annotations);
             }
 
-            return Enumerable.Empty<PermissionData>();
+            return new DefaultScopesEvaluator();
         }
 
-        private static IEnumerable<PermissionData> GetReadPermissions(IEnumerable<IEdmVocabularyAnnotation> annotations)
+        private static IScopesEvaluator GetReadPermissions(IEnumerable<IEdmVocabularyAnnotation> annotations)
         {
-            return GetPermissions(ODataCapabilityRestrictionsConstants.ReadRestrictions, annotations);
+            var permissions = GetPermissions(ODataCapabilityRestrictionsConstants.ReadRestrictions, annotations);
+            return new WithOrScopesCombiner(permissions);
         }
 
-        private static IEnumerable<IScopesEvaluator> GetReadByKeyPermissions(IEnumerable<IEdmVocabularyAnnotation> annotations)
+        private static IScopesEvaluator GetReadByKeyPermissions(IEnumerable<IEdmVocabularyAnnotation> annotations)
         {
+            var evaluator = new WithOrScopesCombiner();
             foreach (var annotation in annotations)
             {
                 if (annotation.Term.FullName() == ODataCapabilityRestrictionsConstants.ReadRestrictions && annotation.Value is IEdmRecordExpression record)
                 {
                     var readPermissions = ExtractPermissionsFromAnnotation(annotation);
-                    yield return new WithOrScopesCombiner(readPermissions);
+                    evaluator.AddRange(readPermissions);
 
                     var readByKeyProperty = record.FindProperty("ReadByKeyRestrictions");
                     var readByKeyValue = readByKeyProperty?.Value as IEdmRecordExpression;
                     var permissionsProperty = readByKeyValue?.FindProperty("Permissions");
                     var  readByKeyPermissions = ExtractPermissionsFromProperty(permissionsProperty);
-                    yield return new WithOrScopesCombiner(readByKeyPermissions);
+                    evaluator.AddRange(readByKeyPermissions);
                 }
             }
+
+            return evaluator;
         }
 
-        private static IEnumerable<PermissionData> GetInsertPermissions(IEnumerable<IEdmVocabularyAnnotation> annotations)
+        private static IScopesEvaluator GetInsertPermissions(IEnumerable<IEdmVocabularyAnnotation> annotations)
         {
-            return GetPermissions(ODataCapabilityRestrictionsConstants.InsertRestrictions, annotations);
+            var permissions = GetPermissions(ODataCapabilityRestrictionsConstants.InsertRestrictions, annotations);
+            return new WithOrScopesCombiner(permissions);
         }
 
-        private static IEnumerable<PermissionData> GetDeletePermissions(IEnumerable<IEdmVocabularyAnnotation> annotations)
+        private static IScopesEvaluator GetDeletePermissions(IEnumerable<IEdmVocabularyAnnotation> annotations)
         {
-            return GetPermissions(ODataCapabilityRestrictionsConstants.DeleteRestrictions, annotations);
+            var permissions = GetPermissions(ODataCapabilityRestrictionsConstants.DeleteRestrictions, annotations);
+            return new WithOrScopesCombiner(permissions);
         }
 
-        private static IEnumerable<PermissionData> GetUpdatePermissions(IEnumerable<IEdmVocabularyAnnotation> annotations)
+        private static IScopesEvaluator GetUpdatePermissions(IEnumerable<IEdmVocabularyAnnotation> annotations)
         {
-            return GetPermissions(ODataCapabilityRestrictionsConstants.UpdateRestrictions, annotations);
+            var permissions = GetPermissions(ODataCapabilityRestrictionsConstants.UpdateRestrictions, annotations);
+            return new WithOrScopesCombiner(permissions);
         }
 
-        private static IEnumerable<PermissionData> GetOperationPermissions(IEnumerable<IEdmVocabularyAnnotation> annotations)
+        private static IScopesEvaluator GetOperationPermissions(IEnumerable<IEdmVocabularyAnnotation> annotations)
         {
-            return GetPermissions(ODataCapabilityRestrictionsConstants.OperationRestrictions, annotations);
+            var permissions = GetPermissions(ODataCapabilityRestrictionsConstants.OperationRestrictions, annotations);
+            return new WithOrScopesCombiner(permissions);
         }
 
-        private static IEnumerable<PermissionData> GetPermissions(string restrictionType, IEnumerable<IEdmVocabularyAnnotation> annotations)
+        private static IEnumerable<IScopesEvaluator> GetPermissions(string restrictionType, IEnumerable<IEdmVocabularyAnnotation> annotations)
         {
             foreach (var annotation in annotations)
             {
@@ -486,18 +507,18 @@ namespace Microsoft.AspNetCore.OData.Authorization
             return Enumerable.Empty<PermissionData>();
         }
 
-        private static IEnumerable<PermissionData> ExtractPermissionsFromAnnotation(IEdmVocabularyAnnotation annotation)
+        private static IEnumerable<IScopesEvaluator> ExtractPermissionsFromAnnotation(IEdmVocabularyAnnotation annotation)
         {
             return ExtractPermissionsFromRecord(annotation.Value as IEdmRecordExpression);
         }
 
-        private static IEnumerable<PermissionData> ExtractPermissionsFromRecord(IEdmRecordExpression record)
+        private static IEnumerable<IScopesEvaluator> ExtractPermissionsFromRecord(IEdmRecordExpression record)
         {
             var permissionsProperty = record?.FindProperty("Permissions");
             return ExtractPermissionsFromProperty(permissionsProperty);
         }
 
-        private static IEnumerable<PermissionData> ExtractPermissionsFromProperty(IEdmPropertyConstructor permissionsProperty)
+        private static IEnumerable<IScopesEvaluator> ExtractPermissionsFromProperty(IEdmPropertyConstructor permissionsProperty)
         {
             if (permissionsProperty?.Value is IEdmCollectionExpression permissionsValue)
             {

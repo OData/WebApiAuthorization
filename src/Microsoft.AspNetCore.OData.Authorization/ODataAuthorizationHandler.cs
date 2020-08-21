@@ -9,7 +9,7 @@ namespace Microsoft.AspNetCore.OData.Authorization
     /// <summary>
     /// Decides whether an OData request should be authorized or denied.
     /// </summary>
-    public class ODataAuthorizationHandler : AuthorizationHandler<ODataAuthorizationScopesRequirement>
+    internal class ODataAuthorizationHandler : AuthorizationHandler<ODataAuthorizationScopesRequirement>
     {
         private Func<ScopeFinderContext, Task<IEnumerable<string>>> _scopesFinder;
 

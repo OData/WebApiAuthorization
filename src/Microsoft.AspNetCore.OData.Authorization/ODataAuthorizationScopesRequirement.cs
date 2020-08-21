@@ -8,7 +8,7 @@ namespace Microsoft.AspNetCore.OData.Authorization
     /// Authorizarion requirement specifying the scopes required
     /// to authorize an OData request.
     /// </summary>
-    public class ODataAuthorizationScopesRequirement : IAuthorizationRequirement
+    internal class ODataAuthorizationScopesRequirement : IAuthorizationRequirement
     {
         /// <summary>
         /// Creates an instance of <see cref="ODataAuthorizationScopesRequirement"/>.
