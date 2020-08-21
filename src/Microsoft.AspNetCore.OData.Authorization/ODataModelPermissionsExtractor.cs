@@ -13,14 +13,14 @@ namespace Microsoft.AspNetCore.OData.Authorization
 {
     internal static class ODataModelPermissionsExtractor
     {
-        internal static IPermissionEvaluator ExtractPermissionsForRequest(this IEdmModel model, string method, AspNet.OData.Routing.ODataPath odataPath)
+        internal static IScopesEvaluator ExtractPermissionsForRequest(this IEdmModel model, string method, AspNet.OData.Routing.ODataPath odataPath)
         {
             var template = odataPath.PathTemplate;
             ODataPathSegment prevSegment = null;
 
             var segments = new List<ODataPathSegment>();
 
-            var permissionsChain = new AllPermissionsCombiner();
+            var permissionsChain = new AllScopesCombiner();
 
             var lastSegmentIndex = odataPath.Segments.Count - 1;
 
@@ -76,7 +76,7 @@ namespace Microsoft.AspNetCore.OData.Authorization
                             continue;
                         }
 
-                        IEnumerable<IPermissionEvaluator> permissions;
+                        IEnumerable<IScopesEvaluator> permissions;
                         
                         permissions = GetNavigationPropertyCrudPermisions(
                             segments,
@@ -89,7 +89,7 @@ namespace Microsoft.AspNetCore.OData.Authorization
                             permissions = GetNavigationSourceCrudPermissions(entitySetSegment.EntitySet, model, method);
                         }
 
-                        var handler = new AnyPermissionsCombiner(permissions);
+                        var handler = new AnyScopesCombiner(permissions);
                         permissionsChain.Add(handler);
                     }
                     else if (segment is SingletonSegment singletonSegment)
@@ -103,12 +103,12 @@ namespace Microsoft.AspNetCore.OData.Authorization
                         if (isPropertyAccess)
                         {
                             var propertyPermissions = GetSingletonPropertyOperationPermissions(singletonSegment.Singleton, model, method);
-                            permissionsChain.Add(new AnyPermissionsCombiner(propertyPermissions));
+                            permissionsChain.Add(new AnyScopesCombiner(propertyPermissions));
                         }
                         else
                         {
                             var permissions = GetNavigationSourceCrudPermissions(singletonSegment.Singleton, model, method);
-                            permissionsChain.Add(new AnyPermissionsCombiner(permissions));
+                            permissionsChain.Add(new AnyScopesCombiner(permissions));
                         }
                     }
                     else if (segment is KeySegment keySegment)
@@ -124,7 +124,7 @@ namespace Microsoft.AspNetCore.OData.Authorization
                             GetEntityPropertyOperationPermissions(entitySet, model, method) :
                             GetEntityCrudPermissions(entitySet, model, method);
 
-                        var handler = new AnyPermissionsCombiner(permissions);
+                        var handler = new AnyScopesCombiner(permissions);
 
 
                         if (parent is NavigationPropertySegment)
@@ -156,7 +156,7 @@ namespace Microsoft.AspNetCore.OData.Authorization
                         }
 
                         var topLevelPermissions = GetNavigationSourceCrudPermissions(navSegment.NavigationSource as IEdmVocabularyAnnotatable, model, method);
-                        var topLevelHandler = new AnyPermissionsCombiner(topLevelPermissions);
+                        var topLevelHandler = new AnyScopesCombiner(topLevelPermissions);
 
                         var nestedPermissions = GetNavigationPropertyCrudPermisions(
                             segments,
@@ -164,21 +164,21 @@ namespace Microsoft.AspNetCore.OData.Authorization
                             model,
                             method);
 
-                        var nestedHandler = new AnyPermissionsCombiner(nestedPermissions);
+                        var nestedHandler = new AnyScopesCombiner(nestedPermissions);
 
-                        permissionsChain.Add(new AnyPermissionsCombiner(topLevelHandler, nestedHandler));
+                        permissionsChain.Add(new AnyScopesCombiner(topLevelHandler, nestedHandler));
                     }
                     else if (segment is OperationImportSegment operationImportSegment)
                     {
                         var annotations = operationImportSegment.OperationImports.First().Operation.VocabularyAnnotations(model);
                         var permissions = GetOperationPermissions(annotations);
-                        permissionsChain.Add(new AnyPermissionsCombiner(permissions));
+                        permissionsChain.Add(new AnyScopesCombiner(permissions));
                     }
                     else if (segment is OperationSegment operationSegment)
                     {
                         var annotations = operationSegment.Operations.First().VocabularyAnnotations(model);
                         var operationPermissions = GetOperationPermissions(annotations);
-                        permissionsChain.Add(new AnyPermissionsCombiner(operationPermissions));
+                        permissionsChain.Add(new AnyScopesCombiner(operationPermissions));
                     }
                 }
             }
@@ -186,7 +186,7 @@ namespace Microsoft.AspNetCore.OData.Authorization
             return permissionsChain;
         }
 
-        private static IEnumerable<IPermissionEvaluator> GetNavigationPropertyCrudPermisions(IList<ODataPathSegment> pathSegments, bool isTargetByKey, IEdmModel model, string method)
+        private static IEnumerable<IScopesEvaluator> GetNavigationPropertyCrudPermisions(IList<ODataPathSegment> pathSegments, bool isTargetByKey, IEdmModel model, string method)
         {
             if (pathSegments.Count <= 1) yield break;
 
@@ -215,32 +215,32 @@ namespace Microsoft.AspNetCore.OData.Authorization
                                         var readRestrictions = restrictedProperty.FindProperty("ReadRestrictions")?.Value as IEdmRecordExpression;
                                       
                                         var readPermissions = ExtractPermissionsFromRecord(readRestrictions);
-                                        yield return new AnyPermissionsCombiner(readPermissions);
+                                        yield return new AnyScopesCombiner(readPermissions);
                                         
                                         if (isTargetByKey)
                                         {
                                             var readByKeyRestrictions = readRestrictions.FindProperty("ReadByKeyRestrictions")?.Value as IEdmRecordExpression;
                                             var readByKeyPermissions =  ExtractPermissionsFromRecord(readByKeyRestrictions);
-                                            yield return new AnyPermissionsCombiner(readByKeyPermissions);
+                                            yield return new AnyScopesCombiner(readByKeyPermissions);
                                         }
                                     }
                                     else if (method == "POST")
                                     {
                                         var insertRestrictions = restrictedProperty.FindProperty("InsertRestrictions")?.Value as IEdmRecordExpression;
                                         var insertPermissions = ExtractPermissionsFromRecord(insertRestrictions);
-                                        yield return new AnyPermissionsCombiner(insertPermissions);
+                                        yield return new AnyScopesCombiner(insertPermissions);
                                     }
                                     else if (method == "PATCH" || method == "PUT" || method == "PATCH")
                                     {
                                         var updateRestrictions = restrictedProperty.FindProperty("UpdateRestrictions")?.Value as IEdmRecordExpression;
                                         var updatePermissions = ExtractPermissionsFromRecord(updateRestrictions);
-                                        yield return new AnyPermissionsCombiner(updatePermissions);
+                                        yield return new AnyScopesCombiner(updatePermissions);
                                     }
                                     else if (method == "DELETE")
                                     {
                                         var deleteRestrictions = restrictedProperty.FindProperty("DeleteRestrictions")?.Value as IEdmRecordExpression;
                                         var deletePermissions = ExtractPermissionsFromRecord(deleteRestrictions);
-                                        yield return new AnyPermissionsCombiner(deletePermissions);
+                                        yield return new AnyScopesCombiner(deletePermissions);
                                     }
                                 }
                             }
@@ -250,7 +250,7 @@ namespace Microsoft.AspNetCore.OData.Authorization
             }
         }
 
-        private static IEnumerable<IPermissionEvaluator> GetNavigationPropertyPropertyOperationPermisions(IList<ODataPathSegment> pathSegments, bool isTargetByKey, IEdmModel model, string method)
+        private static IEnumerable<IScopesEvaluator> GetNavigationPropertyPropertyOperationPermisions(IList<ODataPathSegment> pathSegments, bool isTargetByKey, IEdmModel model, string method)
         {
             if (pathSegments.Count <= 1) yield break;
 
@@ -278,20 +278,20 @@ namespace Microsoft.AspNetCore.OData.Authorization
                                         var readRestrictions = restrictedProperty.FindProperty("ReadRestrictions")?.Value as IEdmRecordExpression;
 
                                         var readPermissions = ExtractPermissionsFromRecord(readRestrictions);
-                                        yield return new AnyPermissionsCombiner(readPermissions);
+                                        yield return new AnyScopesCombiner(readPermissions);
 
                                         if (isTargetByKey)
                                         {
                                             var readByKeyRestrictions = readRestrictions.FindProperty("ReadByKeyRestrictions")?.Value as IEdmRecordExpression;
                                             var readByKeyPermissions = ExtractPermissionsFromRecord(readByKeyRestrictions);
-                                            yield return new AnyPermissionsCombiner(readByKeyPermissions);
+                                            yield return new AnyScopesCombiner(readByKeyPermissions);
                                         }
                                     }
                                     else if (method == "POST" || method == "PATCH" || method == "PUT" || method == "MERGE" || method == "DELETE")
                                     {
                                         var updateRestrictions = restrictedProperty.FindProperty("UpdateRestrictions")?.Value as IEdmRecordExpression;
                                         var updatePermissions = ExtractPermissionsFromRecord(updateRestrictions);
-                                        yield return new AnyPermissionsCombiner(updatePermissions);
+                                        yield return new AnyScopesCombiner(updatePermissions);
                                     }
                                 }
                             }
@@ -374,7 +374,7 @@ namespace Microsoft.AspNetCore.OData.Authorization
             return Enumerable.Empty<PermissionData>();
         }
 
-        private static IEnumerable<IPermissionEvaluator> GetEntityPropertyOperationPermissions(IEdmVocabularyAnnotatable target, IEdmModel model, string method)
+        private static IEnumerable<IScopesEvaluator> GetEntityPropertyOperationPermissions(IEdmVocabularyAnnotatable target, IEdmModel model, string method)
         {
             var annotations = target.VocabularyAnnotations(model);
             if (method == "GET")
@@ -412,7 +412,7 @@ namespace Microsoft.AspNetCore.OData.Authorization
             return Enumerable.Empty<PermissionData>();
         }
 
-        private static IEnumerable<IPermissionEvaluator> GetEntityCrudPermissions(IEdmVocabularyAnnotatable target, IEdmModel model, string method)
+        private static IEnumerable<IScopesEvaluator> GetEntityCrudPermissions(IEdmVocabularyAnnotatable target, IEdmModel model, string method)
         {
             var annotations = target.VocabularyAnnotations(model);
 
@@ -437,20 +437,20 @@ namespace Microsoft.AspNetCore.OData.Authorization
             return GetPermissions(ODataCapabilityRestrictionsConstants.ReadRestrictions, annotations);
         }
 
-        private static IEnumerable<IPermissionEvaluator> GetReadByKeyPermissions(IEnumerable<IEdmVocabularyAnnotation> annotations)
+        private static IEnumerable<IScopesEvaluator> GetReadByKeyPermissions(IEnumerable<IEdmVocabularyAnnotation> annotations)
         {
             foreach (var annotation in annotations)
             {
                 if (annotation.Term.FullName() == ODataCapabilityRestrictionsConstants.ReadRestrictions && annotation.Value is IEdmRecordExpression record)
                 {
                     var readPermissions = ExtractPermissionsFromAnnotation(annotation);
-                    yield return new AnyPermissionsCombiner(readPermissions);
+                    yield return new AnyScopesCombiner(readPermissions);
 
                     var readByKeyProperty = record.FindProperty("ReadByKeyRestrictions");
                     var readByKeyValue = readByKeyProperty?.Value as IEdmRecordExpression;
                     var permissionsProperty = readByKeyValue?.FindProperty("Permissions");
                     var  readByKeyPermissions = ExtractPermissionsFromProperty(permissionsProperty);
-                    yield return new AnyPermissionsCombiner(readByKeyPermissions);
+                    yield return new AnyScopesCombiner(readByKeyPermissions);
                 }
             }
         }

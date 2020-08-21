@@ -35,7 +35,9 @@ namespace Microsoft.AspNetCore.OData.Authorization.Tests
                 typeof(RoutingCustomersController),
                 typeof(VipCustomerController),
                 typeof(SalesPeopleController),
-                typeof(TodoItemController)
+                typeof(TodoItemController),
+                typeof(IncidentsController),
+                typeof(IncidentGroupsController)
             };
 
             var server = TestServerFactory.CreateWithEndpointRouting(controllers, endpoints =>
@@ -183,6 +185,21 @@ namespace Microsoft.AspNetCore.OData.Authorization.Tests
             message.Headers.Add("Scopes", permissions);
 
             response = await _client.SendAsync(message);
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            Assert.Equal(expectedResponse, response.Content.AsObjectContentValue());
+        }
+
+        [Theory]
+        [InlineData("GET", "Incidents", "", "GetIncidents")]
+        [InlineData("GET", "IncidentGroups(10)/Incidents", "IncidentGroup.Read", "GetIncidentGroupIncidents(10)")]
+        public async void ShouldGrantAccessIfModelDoesNotDefinePermissions(string method, string endpoint, string permissions, string expectedResponse)
+        {
+            var uri = $"http://localhost/odata/{endpoint}";
+            var message = new HttpRequestMessage(new HttpMethod(method), uri);
+            message.Headers.Add("Scopes", permissions);
+
+            var response = await _client.SendAsync(message);
 
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             Assert.Equal(expectedResponse, response.Content.AsObjectContentValue());
@@ -538,6 +555,23 @@ namespace Microsoft.AspNetCore.OData.Authorization.Tests
         public string GetDynamicProperty(int key, string dynamicProperty)
         {
             return $"GetSalesPersonDynamicProperty({key}, {dynamicProperty})";
+        }
+    }
+
+    public class IncidentsController : ODataController
+    {
+        public string Get()
+        {
+            return "GetIncidents";
+        }
+    }
+
+    public class IncidentGroupsController : ODataController
+    {
+        [ODataRoute("IncidentGroups({key})/Incidents")]
+        public string GetIncidents(int key)
+        {
+            return $"GetIncidentGroupIncidents({key})";
         }
     }
 }

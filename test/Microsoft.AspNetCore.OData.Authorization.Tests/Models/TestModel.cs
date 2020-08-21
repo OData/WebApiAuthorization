@@ -26,6 +26,7 @@ namespace Microsoft.AspNetCore.OData.Authorization.Tests.Models
             builder.EntitySet<DateTimeOffsetKeyCustomer>("DateTimeOffsetKeyCustomers");
             builder.EntitySet<Destination>("Destinations");
             builder.EntitySet<Incident>("Incidents");
+            builder.EntitySet<IncidentGroup>("IncidentGroups");
             builder.ComplexType<Dog>();
             builder.ComplexType<Cat>();
             builder.EntityType<SpecialProduct>();
@@ -225,6 +226,7 @@ namespace Microsoft.AspNetCore.OData.Authorization.Tests.Models
             var customers = model.FindDeclaredEntitySet("RoutingCustomers");
             var vipCustomer = model.FindDeclaredSingleton("VipCustomer");
             var salesPeople = model.FindDeclaredEntitySet("SalesPeople");
+            var incidentGroups = model.FindDeclaredEntitySet("IncidentGroups");
             var productFunction = model.SchemaElements.OfType<IEdmOperation>()
                 .First(o => o.Name == "FunctionBoundToProduct" && o.Parameters.Count() == 1);
             var productFunction2 = model.SchemaElements.OfType<IEdmOperation>()
@@ -258,6 +260,8 @@ namespace Microsoft.AspNetCore.OData.Authorization.Tests.Models
             PermissionsHelper.AddPermissionsTo(model, myProduct, readRestrictions, "MyProduct.Read");
             PermissionsHelper.AddPermissionsTo(model, myProduct, deleteRestrictions, "MyProduct.Delete");
             PermissionsHelper.AddPermissionsTo(model, myProduct, updateRestrictions, "MyProduct.Update");
+
+            PermissionsHelper.AddPermissionsTo(model, incidentGroups, readRestrictions, "IncidentGroup.Read");
 
             PermissionsHelper.AddPermissionsTo(model, productFunction, operationRestrictions, "Product.Function");
             PermissionsHelper.AddPermissionsTo(model, productFunction2, operationRestrictions, "Product.Function2");
@@ -458,6 +462,12 @@ namespace Microsoft.AspNetCore.OData.Authorization.Tests.Models
         {
             public int ID { get; set; }
             public string Name { get; set; }
+        }
+
+        public class IncidentGroup
+        {
+            public int ID { get; set; }
+            public List<Incident> Incidents { get; set; }
         }
     }
 }

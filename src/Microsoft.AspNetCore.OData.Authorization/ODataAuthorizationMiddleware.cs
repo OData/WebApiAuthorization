@@ -51,7 +51,7 @@ namespace Microsoft.AspNetCore.OData.Authorization
             await this.next(context);
         }
 
-        private void ApplyRestrictions(IPermissionEvaluator handler, HttpContext context)
+        private void ApplyRestrictions(IScopesEvaluator handler, HttpContext context)
         {
             var requirement = new ODataAuthorizationScopesRequirement(handler);
             var policy = new AuthorizationPolicyBuilder().AddRequirements(requirement).Build();

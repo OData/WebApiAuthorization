@@ -4,8 +4,8 @@ using System.Text;
 
 namespace Microsoft.AspNetCore.OData.Authorization
 {
-    public interface IPermissionEvaluator
+    public interface IScopesEvaluator
     {
-        bool VerifyScopes(IEnumerable<string> scopes);
+        bool AllowsScopes(IEnumerable<string> scopes);
     }
 }
