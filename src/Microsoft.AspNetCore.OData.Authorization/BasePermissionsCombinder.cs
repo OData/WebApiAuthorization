@@ -4,24 +4,24 @@ using System.Linq;
 
 namespace Microsoft.AspNetCore.OData.Authorization
 {
-    internal abstract class BasePermissionsCombinder: IPermissionHandler
+    internal abstract class BasePermissionsCombinder: IPermissionEvaluator
     {
-        protected List<IPermissionHandler> _permissions;
+        protected List<IPermissionEvaluator> _permissions;
 
-        public BasePermissionsCombinder(params IPermissionHandler[] permissions) : this(permissions.AsEnumerable())
+        public BasePermissionsCombinder(params IPermissionEvaluator[] permissions) : this(permissions.AsEnumerable())
         { }
 
-        public BasePermissionsCombinder(IEnumerable<IPermissionHandler> permissions)
+        public BasePermissionsCombinder(IEnumerable<IPermissionEvaluator> permissions)
         {
-            _permissions = new List<IPermissionHandler>(permissions);
+            _permissions = new List<IPermissionEvaluator>(permissions);
         }
 
-        public void Add(IPermissionHandler permission)
+        public void Add(IPermissionEvaluator permission)
         {
             _permissions.Add(permission);
         }
 
-        public void AddRange(IEnumerable<IPermissionHandler> permissions)
+        public void AddRange(IEnumerable<IPermissionEvaluator> permissions)
         {
             _permissions.AddRange(permissions);
         }

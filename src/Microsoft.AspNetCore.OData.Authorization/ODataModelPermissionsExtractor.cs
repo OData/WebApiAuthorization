@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.AspNet.OData.Extensions;
 using Microsoft.AspNet.OData.Interfaces;
+using Microsoft.AspNet.OData;
 using Microsoft.AspNetCore.Http;
 using Microsoft.OData.Edm;
 using Microsoft.OData.Edm.Vocabularies;
@@ -12,126 +13,9 @@ namespace Microsoft.AspNetCore.OData.Authorization
 {
     internal static class ODataModelPermissionsExtractor
     {
-        /// <summary>
-        /// Extract permissions from the <paramref name="model"/> that should apply to the current request.
-        /// </summary>
-        /// <param name="model">The OData model.</param>
-        /// <param name="context">The HTTP context.</param>
-        /// <returns></returns>
-        internal static IEnumerable<IPermissionHandler> ExtractPermissionsForRequest(this IEdmModel model, HttpContext context)
+        internal static IPermissionEvaluator ExtractPermissionsForRequest(this IEdmModel model, string method, AspNet.OData.Routing.ODataPath odataPath)
         {
-            IODataFeature odataFeature = context.ODataFeature();
-
-            var odataPath = odataFeature.Path;
             var template = odataPath.PathTemplate;
-            var method = context.Request.Method;
-
-            // $ref segment does not appear in odataPath.Segments, that's why we treat this case separately
-            if (template.EndsWith("$ref"))
-            {
-                // for ref segments, we apply the permission of the entity that contains the navigation property
-                // e.g. for GET Customers(10)/Products/$ref, we apply the read key permissions of Customers
-                // for GET TopCustomer/Products/$ref, we apply the read permissions of TopCustomer
-                // for DELETE Customers(10)/Products(10)/$ref we apply the update permissions of Customers
-                var index = odataPath.Segments.Count - 2;
-                while (!(odataPath.Segments[index] is KeySegment || odataPath.Segments[index] is SingletonSegment) && index > 0)
-                {
-                    index--;
-                }
-
-                if (odataPath.Segments[index] is SingletonSegment singletonSegment)
-                {
-                    return GetSingletonPropertyOperationPermissions(singletonSegment.Singleton, model, method);
-                }
-                else if (odataPath.Segments[index] is KeySegment keySegment)
-                {
-                    var entitySet = keySegment.NavigationSource as IEdmEntitySet;
-                    return GetEntityPropertyOperationPermissions(entitySet, model, method);
-                }
-            }
-            else
-            {
-                ODataPathSegment mainSegment = null;
-                int index = odataPath.Segments.Count - 1;
-                for (; index >= 0; index--)
-                {
-                    var segment = odataPath.Segments[index];
-                    if (segment is EntitySetSegment ||
-                        segment is SingletonSegment ||
-                        segment is NavigationPropertySegment ||
-                        segment is OperationSegment ||
-                        segment is OperationImportSegment ||
-                        segment is KeySegment ||
-                        segment is PropertySegment)
-                    {
-                        mainSegment = segment;
-                        break;
-                    }
-                }
-
-                if (mainSegment is EntitySetSegment entitySetSegment)
-                {
-                    return GetNavigationSourceCrudPermissions(entitySetSegment.EntitySet, model, method);
-                }
-                else if (mainSegment is SingletonSegment singletonSegment)
-                {
-                    return GetNavigationSourceCrudPermissions(singletonSegment.Singleton, model, method);
-                }
-                else if (mainSegment is NavigationPropertySegment navigationSegment)
-                {
-                    var target = navigationSegment.NavigationSource as IEdmVocabularyAnnotatable;
-                    return GetNavigationSourceCrudPermissions(target, model, method);
-                }
-                else if (mainSegment is KeySegment keySegment)
-                {
-                    var entitySet = keySegment.NavigationSource as IEdmEntitySet;
-                    return GetEntityCrudPermissions(entitySet, model, method);
-                }
-                else if (mainSegment is OperationSegment operationSegment)
-                {
-                    var annotations = operationSegment.Operations.First().VocabularyAnnotations(model);
-                    return GetOperationPermissions(annotations);
-                }
-                else if (mainSegment is OperationImportSegment operationImportSegment)
-                {
-                    var annotations = operationImportSegment.OperationImports.First().Operation.VocabularyAnnotations(model);
-                    return GetOperationPermissions(annotations);
-                }
-                else if (mainSegment is PropertySegment)
-                {
-                    // for operations on a property, we apply the permissions of the
-                    // entity or singleton that contain the property
-                    // e.g. for GET Products(10)/Name, we apply the read key permissions of Products
-                    // for GET TopProduct/Name, we apply the read permissions of TopProduct
-                    int entityIndex = index;
-                    while (!(odataPath.Segments[entityIndex] is SingletonSegment || odataPath.Segments[entityIndex] is KeySegment) && entityIndex > 0)
-                    {
-                        entityIndex--;
-                    }
-
-                    if (odataPath.Segments[entityIndex] is SingletonSegment containingSingleton)
-                    {
-                        return GetSingletonPropertyOperationPermissions(containingSingleton.Singleton, model, method);
-                    }
-                    else if (odataPath.Segments[entityIndex] is KeySegment containingEntity)
-                    {
-                        var entitySet = containingEntity.NavigationSource as IEdmEntitySet;
-                        return GetEntityPropertyOperationPermissions(entitySet, model, method);
-                    }
-                }
-            }
-
-            return Enumerable.Empty<PermissionData>();
-        }
-
-        internal static IPermissionHandler ExtractPermissionsForRequestWithNavSupport(this IEdmModel model, HttpContext context)
-        {
-            IODataFeature odataFeature = context.ODataFeature();
-            
-
-            var odataPath = odataFeature.Path;
-            var template = odataPath.PathTemplate;
-            var method = context.Request.Method;
             ODataPathSegment prevSegment = null;
 
             var segments = new List<ODataPathSegment>();
@@ -192,7 +76,7 @@ namespace Microsoft.AspNetCore.OData.Authorization
                             continue;
                         }
 
-                        IEnumerable<IPermissionHandler> permissions;
+                        IEnumerable<IPermissionEvaluator> permissions;
                         
                         permissions = GetNavigationPropertyCrudPermisions(
                             segments,
@@ -302,7 +186,7 @@ namespace Microsoft.AspNetCore.OData.Authorization
             return permissionsChain;
         }
 
-        private static IEnumerable<IPermissionHandler> GetNavigationPropertyCrudPermisions(IList<ODataPathSegment> pathSegments, bool isTargetByKey, IEdmModel model, string method)
+        private static IEnumerable<IPermissionEvaluator> GetNavigationPropertyCrudPermisions(IList<ODataPathSegment> pathSegments, bool isTargetByKey, IEdmModel model, string method)
         {
             if (pathSegments.Count <= 1) yield break;
 
@@ -366,7 +250,7 @@ namespace Microsoft.AspNetCore.OData.Authorization
             }
         }
 
-        private static IEnumerable<IPermissionHandler> GetNavigationPropertyPropertyOperationPermisions(IList<ODataPathSegment> pathSegments, bool isTargetByKey, IEdmModel model, string method)
+        private static IEnumerable<IPermissionEvaluator> GetNavigationPropertyPropertyOperationPermisions(IList<ODataPathSegment> pathSegments, bool isTargetByKey, IEdmModel model, string method)
         {
             if (pathSegments.Count <= 1) yield break;
 
@@ -490,7 +374,7 @@ namespace Microsoft.AspNetCore.OData.Authorization
             return Enumerable.Empty<PermissionData>();
         }
 
-        private static IEnumerable<IPermissionHandler> GetEntityPropertyOperationPermissions(IEdmVocabularyAnnotatable target, IEdmModel model, string method)
+        private static IEnumerable<IPermissionEvaluator> GetEntityPropertyOperationPermissions(IEdmVocabularyAnnotatable target, IEdmModel model, string method)
         {
             var annotations = target.VocabularyAnnotations(model);
             if (method == "GET")
@@ -528,7 +412,7 @@ namespace Microsoft.AspNetCore.OData.Authorization
             return Enumerable.Empty<PermissionData>();
         }
 
-        private static IEnumerable<IPermissionHandler> GetEntityCrudPermissions(IEdmVocabularyAnnotatable target, IEdmModel model, string method)
+        private static IEnumerable<IPermissionEvaluator> GetEntityCrudPermissions(IEdmVocabularyAnnotatable target, IEdmModel model, string method)
         {
             var annotations = target.VocabularyAnnotations(model);
 
@@ -553,7 +437,7 @@ namespace Microsoft.AspNetCore.OData.Authorization
             return GetPermissions(ODataCapabilityRestrictionsConstants.ReadRestrictions, annotations);
         }
 
-        private static IEnumerable<IPermissionHandler> GetReadByKeyPermissions(IEnumerable<IEdmVocabularyAnnotation> annotations)
+        private static IEnumerable<IPermissionEvaluator> GetReadByKeyPermissions(IEnumerable<IEdmVocabularyAnnotation> annotations)
         {
             foreach (var annotation in annotations)
             {

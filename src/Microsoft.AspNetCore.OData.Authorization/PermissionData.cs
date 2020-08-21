@@ -6,7 +6,7 @@ namespace Microsoft.AspNetCore.OData.Authorization
     /// <summary>
     /// Represents permission restrictions extracted from an OData model.
     /// </summary>
-    internal class PermissionData: IPermissionHandler
+    internal class PermissionData: IPermissionEvaluator
     {
         public string SchemeName { get; set; }
         public IList<PermissionScopeData> Scopes { get; set; }

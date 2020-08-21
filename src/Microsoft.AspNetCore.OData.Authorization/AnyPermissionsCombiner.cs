@@ -11,10 +11,10 @@ namespace Microsoft.AspNetCore.OData.Authorization
     /// </summary>
     internal class AnyPermissionsCombiner: BasePermissionsCombinder
     {
-        public AnyPermissionsCombiner(params IPermissionHandler[] permissions) : base(permissions)
+        public AnyPermissionsCombiner(params IPermissionEvaluator[] permissions) : base(permissions)
         { }
 
-        public AnyPermissionsCombiner(IEnumerable<IPermissionHandler> permissions) : base(permissions)
+        public AnyPermissionsCombiner(IEnumerable<IPermissionEvaluator> permissions) : base(permissions)
         { }
 
         public override bool VerifyScopes(IEnumerable<string> scopes)

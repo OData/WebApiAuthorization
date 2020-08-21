@@ -100,7 +100,6 @@ namespace Microsoft.AspNetCore.OData.Authorization.Tests
         [InlineData("MERGE", "MyProduct", "MyProduct.Update", "PATCH MyProduct")]
         [InlineData("MERGE", "MyProduct/Microsoft.AspNetCore.OData.Authorization.Tests.Models.SpecialProduct", "MyProduct.Update", "PATCH MySpecialProduct")]
         // bound functions
-        // TODO create test with functions bound to derived types
         [InlineData("GET", "Products(10)/FunctionBoundToProduct", "Product.Function", "FunctionBoundToProduct(10)")]
         [InlineData("GET", "Products(10)/FunctionBoundToProduct(P1=1)", "Product.Function2", "FunctionBoundToProduct(10, 1)")]
         [InlineData("GET", "Products(10)/FunctionBoundToProduct(P1=1, P2=2, P3='3')", "Product.Function3", "FunctionBoundToProduct(10, 1, 2, 3)")]

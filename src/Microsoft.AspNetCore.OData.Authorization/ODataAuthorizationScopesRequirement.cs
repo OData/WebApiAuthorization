@@ -14,7 +14,7 @@ namespace Microsoft.AspNetCore.OData.Authorization
         /// Creates an instance of <see cref="ODataAuthorizationScopesRequirement"/>.
         /// </summary>
         /// <param name="allowedScopes">The scopes required to authorize a request where this requirement is applied.</param>
-        public ODataAuthorizationScopesRequirement(IPermissionHandler permissionHandler)
+        public ODataAuthorizationScopesRequirement(IPermissionEvaluator permissionHandler)
         {
             PermissionHandler = permissionHandler;
         }
@@ -22,6 +22,6 @@ namespace Microsoft.AspNetCore.OData.Authorization
         /// <summary>
         /// The scopes specified by this authorization requirement.
         /// </summary>
-        internal IPermissionHandler PermissionHandler { get; private set; }
+        internal IPermissionEvaluator PermissionHandler { get; private set; }
     }
 }

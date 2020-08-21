@@ -217,6 +217,7 @@ namespace Microsoft.AspNetCore.OData.Authorization.Tests.Models
             var updateRestrictions = "Org.OData.Capabilities.V1.UpdateRestrictions";
             var deleteRestrictions = "Org.OData.Capabilities.V1.DeleteRestrictions";
             var operationRestrictions = "Org.OData.Capabilities.V1.OperationRestrictions";
+            var navigationRestrictions = "Org.OData.Capabilities.V1.NavigationRestrictions";
 
             var product = model.FindDeclaredType("Microsoft.AspNet.OData.Test.Routing.Product") as IEdmEntityType;
             var products = model.FindDeclaredEntitySet("Products");
@@ -273,6 +274,22 @@ namespace Microsoft.AspNetCore.OData.Authorization.Tests.Models
                     new EdmPropertyConstructor("ReadByKeyRestrictions", PermissionsHelper.CreatePermission(new[] { "Customer.ReadByKey" })))));
 
             PermissionsHelper.AddPermissionsTo(model, customers, insertRestrictions, "Customer.Insert");
+            PermissionsHelper.AddPermissionsTo(model, customers, deleteRestrictions, "Customer.Delete");
+            PermissionsHelper.AddPermissionsTo(model, customers, updateRestrictions, "Customer.Update");
+
+            model.AddVocabularyAnnotation(new EdmVocabularyAnnotation(
+                products,
+                model.FindTerm(navigationRestrictions),
+                new EdmRecordExpression(
+                    new EdmPropertyConstructor("RestrictedProperties", new EdmCollectionExpression(
+                        new EdmRecordExpression(
+                            new EdmPropertyConstructor("NavigationProperty", new EdmNavigationPropertyPathExpression("Default.Container.Products", "{key}", "RoutingCustomers")),
+                            new EdmPropertyConstructor("ReadRestrictions", new EdmRecordExpression(
+                                PermissionsHelper.CreatePermissionProperty(new string[] { "ProductCustomers.Read" }),
+                                new EdmPropertyConstructor("ReadByKeyRestrictions", PermissionsHelper.CreatePermission(new[] { "ProductCustomers.ReadByKey" })))),
+                            new EdmPropertyConstructor("DeleteRestrictions", PermissionsHelper.CreatePermission("ProductCustomers.Delete")),
+                            new EdmPropertyConstructor("UpdateRestrictions", PermissionsHelper.CreatePermission("ProductCustomers.Update")),
+                            new EdmPropertyConstructor("InsertRestrictions", PermissionsHelper.CreatePermission("ProductCustomers.Insert"))))))));
 
             PermissionsHelper.AddPermissionsTo(model, vipCustomer, readRestrictions, "VipCustomer.Read");
 

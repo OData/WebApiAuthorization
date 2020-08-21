@@ -45,36 +45,21 @@ namespace Microsoft.AspNetCore.OData.Authorization
                 return;
             }
 
-            //var permissions = model.ExtractPermissionsForRequest(context);
-            //foreach (var perm in permissions)
-            //{
-            //    ApplyRestrictions(perm, context);
-            //}
-
-            var permissions = model.ExtractPermissionsForRequestWithNavSupport(context);
+            var permissions = model.ExtractPermissionsForRequest(context.Request.Method, odataFeature.Path);
             ApplyRestrictions(permissions, context);
 
             await this.next(context);
         }
 
-        //private void ApplyRestrictions(PermissionData permissionData, HttpContext context)
-        //{
-
-        //    var requirement = new ODataAuthorizationScopesRequirement(permissionData);
-        //    var policy = new AuthorizationPolicyBuilder(permissionData.SchemeName).AddRequirements(requirement).Build();
-
-        //    // We use the AuthorizeFilter instead of relying on the built-in authorization middleware
-        //    // because we cannot add new metadata to the endpoint in the middle of a request
-        //    // and OData's current implementation of endpoint routing does not allow for
-        //    // adding metadata to individual routes ahead of time
-        //    var authFilter = new AuthorizeFilter(policy);
-        //    context.ODataFeature().ActionDescriptor?.FilterDescriptors?.Add(new FilterDescriptor(authFilter, 0));
-        //}
-
-        private void ApplyRestrictions(IPermissionHandler handler, HttpContext context)
+        private void ApplyRestrictions(IPermissionEvaluator handler, HttpContext context)
         {
             var requirement = new ODataAuthorizationScopesRequirement(handler);
             var policy = new AuthorizationPolicyBuilder().AddRequirements(requirement).Build();
+
+            //    // We use the AuthorizeFilter instead of relying on the built-in authorization middleware
+            //    // because we cannot add new metadata to the endpoint in the middle of a request
+            //    // and OData's current implementation of endpoint routing does not allow for
+            //    // adding metadata to individual routes ahead of time
             var authFilter = new AuthorizeFilter(policy);
             context.ODataFeature().ActionDescriptor?.FilterDescriptors?.Add(new FilterDescriptor(authFilter, 0));
         }
