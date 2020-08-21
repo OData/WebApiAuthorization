@@ -34,21 +34,21 @@ namespace Microsoft.AspNetCore.OData.Authorization
             var odataFeature = context.ODataFeature();
             if (odataFeature == null || odataFeature.Path == null)
             {
-                await this.next(context);
+                await next(context);
                 return;
             }
 
             IEdmModel model = context.Request.GetModel();
             if (model == null)
             {
-                await this.next(context);
+                await next(context);
                 return;
             }
 
             var permissions = model.ExtractPermissionsForRequest(context.Request.Method, odataFeature.Path);
             ApplyRestrictions(permissions, context);
 
-            await this.next(context);
+            await next(context);
         }
 
         private void ApplyRestrictions(IScopesEvaluator handler, HttpContext context)

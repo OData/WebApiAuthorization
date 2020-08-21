@@ -4,26 +4,31 @@ using System.Linq;
 
 namespace Microsoft.AspNetCore.OData.Authorization
 {
+    /// <summary>
+    /// An <see cref="IScopesEvaluator"/> that combines
+    /// other evaluators and returns the aggregate
+    /// result of the combined evaluators.
+    /// </summary>
     internal abstract class BaseScopesCombiner: IScopesEvaluator
     {
-        protected List<IScopesEvaluator> _permissions;
-
-        public BaseScopesCombiner(params IScopesEvaluator[] permissions) : this(permissions.AsEnumerable())
+        public BaseScopesCombiner(params IScopesEvaluator[] evaluators) : this(evaluators.AsEnumerable())
         { }
 
         public BaseScopesCombiner(IEnumerable<IScopesEvaluator> permissions)
         {
-            _permissions = new List<IScopesEvaluator>(permissions);
+            Evaluators = new List<IScopesEvaluator>(permissions);
         }
 
-        public void Add(IScopesEvaluator permission)
+        protected List<IScopesEvaluator> Evaluators { get; private set; }
+
+        public void Add(IScopesEvaluator evaluator)
         {
-            _permissions.Add(permission);
+            Evaluators.Add(evaluator);
         }
 
-        public void AddRange(IEnumerable<IScopesEvaluator> permissions)
+        public void AddRange(IEnumerable<IScopesEvaluator> evaluators)
         {
-            _permissions.AddRange(permissions);
+            Evaluators.AddRange(evaluators);
         }
 
         public abstract bool AllowsScopes(IEnumerable<string> scopes);
