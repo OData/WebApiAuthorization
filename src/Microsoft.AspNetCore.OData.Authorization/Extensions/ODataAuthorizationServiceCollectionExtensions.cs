@@ -11,13 +11,24 @@ namespace Microsoft.AspNetCore.OData.Authorization
     /// </summary>
     public static class ODataAuthorizationServiceCollectionExtensions
     {
+
+        /// <summary>
+        /// Adds OData model-based authorization services to the service collection
+        /// </summary>
+        /// <param name="services">The service collection</param>
+        /// <returns></returns>
+        public static IServiceCollection AddODataAuthorization(this IServiceCollection services)
+        {
+            return AddODataAuthorization(services, null);
+        }
+
         /// <summary>
         /// Adds OData model-based authorization services to the service collection
         /// </summary>
         /// <param name="services">The service collection</param>
         /// <param name="configureOptions">Action to configure the authorization options</param>
         /// <returns></returns>
-        public static IServiceCollection AddODataAuthorization(this IServiceCollection services, Action<ODataAuthorizationOptions> configureOptions = null)
+        public static IServiceCollection AddODataAuthorization(this IServiceCollection services, Action<ODataAuthorizationOptions> configureOptions)
         {
             var options = new ODataAuthorizationOptions(services);
             configureOptions?.Invoke(options);

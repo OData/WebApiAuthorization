@@ -539,7 +539,7 @@ namespace Microsoft.AspNetCore.OData.Authorization
             var scopeProperty = scopeRecord.FindProperty("Scope")?.Value as IEdmStringConstantExpression;
             var restrictedPropertiesProperty = scopeRecord.FindProperty("RestrictedProperties")?.Value as IEdmStringConstantExpression;
 
-            return new PermissionScopeData() { Scope = scopeProperty.Value, RestrictedProperties = restrictedPropertiesProperty.Value };
+            return new PermissionScopeData() { Scope = scopeProperty?.Value, RestrictedProperties = restrictedPropertiesProperty?.Value };
         }
     }
 }

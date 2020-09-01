@@ -1,5 +1,4 @@
-﻿using System.Linq;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.AspNetCore.Mvc.Authorization;
@@ -14,14 +13,14 @@ namespace Microsoft.AspNetCore.OData.Authorization
     /// </summary>
     public class ODataAuthorizationMiddleware
     {
-        private RequestDelegate next;
+        private RequestDelegate _next;
 
         /// <summary>
         /// Instantiates a new instance of <see cref="ODataAuthorizationMiddleware"/>.
         /// </summary>
         public ODataAuthorizationMiddleware(RequestDelegate next)
         {
-            this.next = next;
+            _next = next;
         }
 
         /// <summary>
@@ -34,21 +33,21 @@ namespace Microsoft.AspNetCore.OData.Authorization
             var odataFeature = context.ODataFeature();
             if (odataFeature == null || odataFeature.Path == null)
             {
-                await next(context);
+                await _next(context);
                 return;
             }
 
             IEdmModel model = context.Request.GetModel();
             if (model == null)
             {
-                await next(context);
+                await _next(context);
                 return;
             }
 
             var permissions = model.ExtractPermissionsForRequest(context.Request.Method, odataFeature.Path);
             ApplyRestrictions(permissions, context);
 
-            await next(context);
+            await _next(context);
         }
 
         private void ApplyRestrictions(IScopesEvaluator handler, HttpContext context)

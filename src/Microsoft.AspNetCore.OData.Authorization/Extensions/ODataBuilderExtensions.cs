@@ -1,13 +1,28 @@
-﻿using Microsoft.AspNet.OData.Interfaces;
-using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System;
+using Microsoft.AspNet.OData.Interfaces;
 
 namespace Microsoft.AspNetCore.OData.Authorization.Extensions
 {
     public static class ODataBuilderExtensions
     {
-        public static IODataBuilder AddAuthorization(this IODataBuilder odataBuilder, Action<ODataAuthorizationOptions> configureODataAuth = null)
+        /// <summary>
+        /// Adds OData model-based authorization services
+        /// </summary>
+        /// <param name="odataBuilder"></param>
+        /// <returns></returns>
+        public static IODataBuilder AddAuthorization(this IODataBuilder odataBuilder)
+        {
+            odataBuilder.Services.AddODataAuthorization();
+            return odataBuilder;
+        }
+
+        /// <summary>
+        /// Adds OData model-based authorization services
+        /// </summary>
+        /// <param name="odataBuilder"></param>
+        /// <param name="configureODataAuth">Action to configure the authorization options</param>
+        /// <returns></returns>
+        public static IODataBuilder AddAuthorization(this IODataBuilder odataBuilder, Action<ODataAuthorizationOptions> configureODataAuth)
         {
             odataBuilder.Services.AddODataAuthorization(configureODataAuth);
             return odataBuilder;
