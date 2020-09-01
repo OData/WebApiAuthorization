@@ -68,7 +68,7 @@ namespace Microsoft.AspNetCore.OData.Authorization
                             continue;
                         }
 
-                        // if Customers/UnboundFunction, then we'll handle it when we reach there
+                        // if Customers/UnboundFunction, then we'll handle it when we reach the operation segment
                         if (IsNextSegmentOfType<OperationSegment>(odataPath, i))
                         {
                             continue;
@@ -92,7 +92,7 @@ namespace Microsoft.AspNetCore.OData.Authorization
                     }
                     else if (segment is SingletonSegment singletonSegment)
                     {
-                        // if Customers/UnboundFunction, then we'll handle it when we reach there
+                        // if Customers/UnboundFunction, then we'll handle it when we reach the operation segment
                         if (IsNextSegmentOfType<OperationSegment>(odataPath, i))
                         {
                             continue;
@@ -111,7 +111,7 @@ namespace Microsoft.AspNetCore.OData.Authorization
                     }
                     else if (segment is KeySegment keySegment)
                     {
-                        // if Customers/UnboundFunction, then we'll handle it when we reach there
+                        // if Customers/UnboundFunction, then we'll handle it when we reach the operation segment
                         if (IsNextSegmentOfType<OperationSegment>(odataPath, i))
                         {
                             continue;
@@ -351,15 +351,11 @@ namespace Microsoft.AspNetCore.OData.Authorization
 
                 if (path is EntitySetSegment entitySetSegment)
                 {
-                    pathParts.Add(entitySetSegment.EntitySet.FullNavigationSourceName());
+                    pathParts.Add(entitySetSegment.EntitySet.Name);
                 }
                 else if(path is SingletonSegment singletonSegment)
                 {
-                    pathParts.Add(singletonSegment.Singleton.FullNavigationSourceName());
-                }
-                else if(path is KeySegment && i < segments.Count) // don't add {key} to the end of the path
-                {
-                    pathParts.Add("{key}");
+                    pathParts.Add(singletonSegment.Singleton.Name);
                 }
                 else if(path is NavigationPropertySegment navSegment)
                 {

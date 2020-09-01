@@ -65,12 +65,12 @@ namespace AspNetCore3ODataPermissionsSample.Models
                 new EdmRecordExpression(
                     new EdmPropertyConstructor("RestrictedProperties", new EdmCollectionExpression(
                         new EdmRecordExpression(
-                            new EdmPropertyConstructor("NavigationProperty", new EdmNavigationPropertyPathExpression("Default.Container.Customers", "{key}", "Orders")),
+                            new EdmPropertyConstructor("NavigationProperty", new EdmNavigationPropertyPathExpression("Customers/Orders")),
                             new EdmPropertyConstructor("ReadRestrictions", new EdmRecordExpression(
                                 CreatePermissionProperty(new string[] { "Customers.ReadOrders" }),
                                 new EdmPropertyConstructor("ReadByKeyRestrictions", CreatePermission(new[] { "Customers.ReadOrderByKey" } ))))),
                         new EdmRecordExpression(
-                            new EdmPropertyConstructor("NavigationProperty", new EdmNavigationPropertyPathExpression("Default.Container.Customers", "{key}", "Order")),
+                            new EdmPropertyConstructor("NavigationProperty", new EdmNavigationPropertyPathExpression("Customers/Order")),
                             new EdmPropertyConstructor("ReadRestrictions", new EdmRecordExpression(
                                 CreatePermissionProperty(new string[] { "Customers.ReadOrder" })))))))));
         }

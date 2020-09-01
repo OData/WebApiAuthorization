@@ -287,7 +287,7 @@ namespace Microsoft.AspNetCore.OData.Authorization.Tests.Models
                 new EdmRecordExpression(
                     new EdmPropertyConstructor("RestrictedProperties", new EdmCollectionExpression(
                         new EdmRecordExpression(
-                            new EdmPropertyConstructor("NavigationProperty", new EdmNavigationPropertyPathExpression("Default.Container.Products", "{key}", "RoutingCustomers")),
+                            new EdmPropertyConstructor("NavigationProperty", new EdmNavigationPropertyPathExpression("Products/RoutingCustomers")),
                             new EdmPropertyConstructor("ReadRestrictions", new EdmRecordExpression(
                                 PermissionsHelper.CreatePermissionProperty(new string[] { "ProductCustomers.Read" }),
                                 new EdmPropertyConstructor("ReadByKeyRestrictions", PermissionsHelper.CreatePermission(new[] { "ProductCustomers.ReadByKey" })))),
