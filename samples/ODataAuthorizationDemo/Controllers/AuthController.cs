@@ -27,11 +27,7 @@ namespace ODataAuthorizationDemo.Controllers
 
             await HttpContext.SignInAsync(
                 CookieAuthenticationDefaults.AuthenticationScheme,
-                user,
-                new AuthenticationProperties()
-                {
-                    RedirectUri = null
-                });
+                user);
 
             return Ok();
         }

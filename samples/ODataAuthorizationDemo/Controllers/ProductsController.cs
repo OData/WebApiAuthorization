@@ -31,7 +31,7 @@ namespace ODataAuthorizationDemo.Controllers
             return Ok(product);
         }
 
-        public async Task<IActionResult> Update(int key, [FromBody] Delta<Product> delta)
+        public async Task<IActionResult> Patch(int key, [FromBody] Delta<Product> delta)
         {
             var product = await _dbContext.Products.FindAsync(key);
             delta.Patch(product);
