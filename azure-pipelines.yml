@@ -57,7 +57,7 @@ steps:
 - task: DotNetCoreCLI@2
   displayName: 'build $(ProductName) Unit test project'
   inputs:
-    projects: '$(TestDir)\($ProductName).Tests.csproj'
+    projects: '$(TestDir)\$(ProductName).Tests.csproj'
     arguments: '--configuration $(BuildConfiguration) --no-incremental'
 
 # Run the Unit test
