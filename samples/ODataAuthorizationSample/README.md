@@ -14,7 +14,7 @@ Based on the model annotations, the:
 | Endpoint                 | Required permissions
 ---------------------------|----------------------
 `GET /odata/Customers`     | `Customers.Read`
-`GET /odata/Customers/1`   | `Customers.ReadByKey`
+`GET /odata/Customers/1`   | `Customers.Read` or `Customers.ReadByKey`
 `DELETE /odata/Customers/1`| `Customers.Delete`
 `POST /odata/Customers`    | `Customers.Insert`
 `GET /odata/GetTopCustomer`| `Customers.GetTop`
