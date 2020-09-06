@@ -22,7 +22,7 @@ namespace Microsoft.AspNetCore.OData.Authorization
         /// <param name="scopesFinder">User-defined function used to retrieve the current user's scopes from the authorization context</param>
         public ODataAuthorizationHandler(Func<ScopeFinderContext, Task<IEnumerable<string>>> scopesFinder = null) : base()
         {
-            this._scopesFinder = scopesFinder;
+            _scopesFinder = scopesFinder;
         }
 
         /// <summary>
