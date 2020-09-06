@@ -51,7 +51,7 @@ namespace AspNetCore3ODataPermissionsSample
                 };
 
                 options.ConfigureAuthentication("AuthScheme")
-                    .AddScheme<CustomAuthentationOptions, CustomAuthenticationHandler>("AuthScheme", options => { });
+                    .AddScheme<CustomAuthenticationOptions, CustomAuthenticationHandler>("AuthScheme", options => { });
             });
 
             // OData authorization depends on the AspNetCore authentication and authorization services
@@ -89,9 +89,9 @@ namespace AspNetCore3ODataPermissionsSample
     }
 
     // our customer authentication handler
-    internal class CustomAuthenticationHandler : AuthenticationHandler<CustomAuthentationOptions>
+    internal class CustomAuthenticationHandler : AuthenticationHandler<CustomAuthenticationOptions>
     {
-        public CustomAuthenticationHandler(IOptionsMonitor<CustomAuthentationOptions> options, ILoggerFactory logger, System.Text.Encodings.Web.UrlEncoder encoder, ISystemClock clock) : base(options, logger, encoder, clock)
+        public CustomAuthenticationHandler(IOptionsMonitor<CustomAuthenticationOptions> options, ILoggerFactory logger, System.Text.Encodings.Web.UrlEncoder encoder, ISystemClock clock) : base(options, logger, encoder, clock)
         {
         }
 
@@ -115,7 +115,7 @@ namespace AspNetCore3ODataPermissionsSample
         }
     }
 
-    internal class CustomAuthentationOptions : AuthenticationSchemeOptions
+    internal class CustomAuthenticationOptions : AuthenticationSchemeOptions
     {
     }
 }
