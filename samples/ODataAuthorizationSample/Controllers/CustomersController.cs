@@ -18,7 +18,7 @@ namespace AspNetCore3ODataPermissionsSample.Controllers
         {
             _context = context;
 
-            if (_context.Customers.Count() == 0)
+            if (!_context.Customers.Any())
             {
                 IList<Customer> customers = new List<Customer>
                 {
