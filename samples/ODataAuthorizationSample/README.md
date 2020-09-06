@@ -2,7 +2,7 @@
 
 This application demonstrates how to use the OData authorization extensions to apply permissions to OData endpoints based on the model capability restrictions.
 
-The applicaiton defines a model with CRUD permission restrictions annotations on the `Customers` entity set and the
+The application defines a model with CRUD permission restrictions annotations on the `Customers` entity set and the
 `GetTopCustomer` unbound function.
 
 It uses a custom authentication handler that assumes a
