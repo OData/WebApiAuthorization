@@ -14,12 +14,12 @@ using Microsoft.AspNetCore.OData.Authorization
 public void ConfigureServices(IServiceCollection services)
 {
     // odata authorization services
-    services.AddODataAuthorization();
-    services.AddODataAuthorization(options => {
-        // you need to register an authentication scheme/handler
-        // This works similar to services.AddAuthentication
-        options.ConfigureAuthentication("DefaultAuthScheme").AddScheme(/* ... */)
-    });
+    services.AddOData()
+        .AddODataAuthorization(options => {
+            // you need to register an authentication scheme/handler
+            // This works similar to services.AddAuthentication
+            options.ConfigureAuthentication("DefaultAuthScheme").AddScheme(/* ... */)
+        });
 
     service.AddRouting();
 }
@@ -95,7 +95,7 @@ For CRUD operations on entity sets and singleton, the permissions of the corresp
 Endpoint                     | Required permission scopes
 -----------------------------|----------------------
 `GET Customers`              | `Customers.Read`
-`GET Customers(1)`           | `CustomersRead OR Customers.ReadByKey`
+`GET Customers(1)`           | `Customers.Read` OR Customers.ReadByKey`
 `DELETE Customers/1`         | `Customers.Delete`
 `POST Customers`             | `Customers.Insert`
 `PUT Customers`              | `Customers.Update`
