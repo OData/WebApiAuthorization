@@ -19,10 +19,10 @@ namespace Microsoft.AspNetCore.OData.Authorization
         /// <summary>
         /// Creates an instance of <see cref="ODataAuthorizationHandler"/>.
         /// </summary>
-        /// <param name="scopesFinder">User-define function used to retrieve the current user's scopes from the authorization context</param>
+        /// <param name="scopesFinder">User-defined function used to retrieve the current user's scopes from the authorization context</param>
         public ODataAuthorizationHandler(Func<ScopeFinderContext, Task<IEnumerable<string>>> scopesFinder = null) : base()
         {
-            this._scopesFinder = scopesFinder;
+            _scopesFinder = scopesFinder;
         }
 
         /// <summary>

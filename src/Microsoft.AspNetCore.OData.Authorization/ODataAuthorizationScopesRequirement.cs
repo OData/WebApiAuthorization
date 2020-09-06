@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 namespace Microsoft.AspNetCore.OData.Authorization
 {
     /// <summary>
-    /// Authorizarion requirement specifying the scopes required
+    /// Authorization requirement specifying the scopes required
     /// to authorize an OData request.
     /// </summary>
     internal class ODataAuthorizationScopesRequirement : IAuthorizationRequirement
