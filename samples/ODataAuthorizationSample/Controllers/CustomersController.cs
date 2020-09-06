@@ -74,7 +74,7 @@ namespace AspNetCore3ODataPermissionsSample.Controllers
         [EnableQuery]
         public IActionResult Get()
         {
-            // Be noted: without the NoTracking setting, the query for $select=HomeAddress with throw exception:
+            // NOTE: without the NoTracking setting, the query for $select=HomeAddress will throw an exception
             // A tracking query projects owned entity without corresponding owner in result. Owned entities cannot be tracked without their owner...
             _context.ChangeTracker.QueryTrackingBehavior = QueryTrackingBehavior.NoTracking;
 
