@@ -32,28 +32,26 @@ namespace Microsoft.AspNetCore.OData.Authorization
         /// </summary>
         /// <param name="context">The http context.</param>
         /// <returns>A task that can be awaited.</returns>
-        public async Task Invoke(HttpContext context)
+        public Task Invoke(HttpContext context)
         {
             Contract.Assert(context != null);
 
             var odataFeature = context.ODataFeature();
             if (odataFeature == null || odataFeature.Path == null)
             {
-                await _next(context).ConfigureAwait(true);
-                return;
+                return _next(context);
             }
 
             IEdmModel model = context.Request.GetModel();
             if (model == null)
             {
-                await _next(context).ConfigureAwait(false);
-                return;
+                return _next(context);
             }
 
             var permissions = model.ExtractPermissionsForRequest(context.Request.Method, odataFeature.Path);
             ApplyRestrictions(permissions, context);
 
-            await _next(context).ConfigureAwait(false);
+            return _next(context);
         }
 
         private static void ApplyRestrictions(IScopesEvaluator handler, HttpContext context)
