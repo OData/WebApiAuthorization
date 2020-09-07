@@ -35,8 +35,8 @@ namespace Microsoft.AspNetCore.OData.Authorization
         protected override async Task HandleRequirementAsync(AuthorizationHandlerContext context, ODataAuthorizationScopesRequirement requirement)
         {
             var scopeFinderContext = new ScopeFinderContext(context.User);
-            var getScopes = this._scopesFinder ?? DefaultFindScopes;
-            var scopes = await getScopes(scopeFinderContext);
+            var getScopes = _scopesFinder ?? DefaultFindScopes;
+            var scopes = await getScopes(scopeFinderContext).ConfigureAwait(false);
 
             if (requirement.PermissionHandler.AllowsScopes(scopes))
             {

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics.Contracts;
 // Copyright (c) Microsoft Corporation.  All rights reserved.
 // Licensed under the MIT License.  See License.txt in the project root for license information.
 
@@ -15,6 +16,8 @@ namespace Microsoft.AspNetCore.OData.Authorization.Extensions
         /// <returns></returns>
         public static IODataBuilder AddAuthorization(this IODataBuilder odataBuilder)
         {
+            Contract.Assert(odataBuilder != null);
+
             odataBuilder.Services.AddODataAuthorization();
             return odataBuilder;
         }
@@ -27,6 +30,8 @@ namespace Microsoft.AspNetCore.OData.Authorization.Extensions
         /// <returns></returns>
         public static IODataBuilder AddAuthorization(this IODataBuilder odataBuilder, Action<ODataAuthorizationOptions> configureODataAuth)
         {
+            Contract.Assert(odataBuilder != null);
+
             odataBuilder.Services.AddODataAuthorization(configureODataAuth);
             return odataBuilder;
         }

@@ -5,7 +5,7 @@ namespace Microsoft.AspNetCore.OData.Authorization
 {
     internal static class ODataCapabilityRestrictionsConstants
     {
-        public static readonly string CapabilitiesNamespace = "Org.OData.Capabilities.V1";
+        public const string CapabilitiesNamespace = "Org.OData.Capabilities.V1";
         public static readonly string ReadRestrictions = $"{CapabilitiesNamespace}.ReadRestrictions";
         public static readonly string ReadByKeyRestrictions = $"{CapabilitiesNamespace}.ReadByKeyRestrictions";
         public static readonly string InsertRestrictions = $"{CapabilitiesNamespace}.InsertRestrictions";
