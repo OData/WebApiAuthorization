@@ -37,6 +37,11 @@ public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
 }
 ```
 
+## Sample applications
+
+- [ODataAuthorizationSample](./samples/ODataAuthorizationSample): Simple API with permission restrictions and OData authorization middleware set up with a custom authentication handler
+- [CookieAuthenticationSample](./samples/CookieAuthenticationSample): Basic API with permissions restrictions and a cookie-based authentication handler
+
 ### How to specify permission scopes?
 
 By default, the library will try extract permissions from the
