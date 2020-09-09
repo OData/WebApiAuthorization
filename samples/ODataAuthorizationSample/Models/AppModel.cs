@@ -1,8 +1,8 @@
-﻿using Microsoft.AspNet.OData.Builder;
+﻿
+using System.Linq;
 using Microsoft.OData.Edm;
 using Microsoft.OData.Edm.Vocabularies;
-using Microsoft.OData.UriParser;
-using System.Linq;
+using Microsoft.OData.ModelBuilder;
 
 namespace AspNetCore3ODataPermissionsSample.Models
 {
@@ -11,98 +11,55 @@ namespace AspNetCore3ODataPermissionsSample.Models
         public static IEdmModel GetEdmModel()
         {
             var builder = new ODataConventionModelBuilder();
-            builder.EntitySet<Customer>("Customers");
-            builder.EntitySet<Order>("Orders");
-            builder.Function("GetTopCustomer").ReturnsFromEntitySet<Customer>("Customers");
+            var customers = builder.EntitySet<Customer>("Customers");
+            var orders = builder.EntitySet<Order>("Orders");
+            var getTopCustomer = builder.Function("GetTopCustomer").ReturnsFromEntitySet<Customer>("Customers");
 
             var customerEntity = builder.EntityType<Customer>();
-            customerEntity.Function("GetAge").Returns<int>();
+            var getAge = customerEntity.Function("GetAge").Returns<int>();
+
+            // define permission restrictions
+            customers.HasReadRestrictions()
+                .HasPermissions(p => p.HasSchemeName("Scheme").HasScopes(s => s.HasScope("Customers.Read")))
+                .HasReadByKeyRestrictions(r => r.HasPermissions(p =>
+                    p.HasSchemeName("Scheme").HasScopes(s => s.HasScope("Customers.ReadByKey"))));
+
+            customers.HasInsertRestrictions()
+                .HasPermissions(p => p.HasSchemeName("Scheme").HasScopes(s => s.HasScope("Customers.Insert")));
+
+            customers.HasUpdateRestrictions()
+                .HasPermissions(p => p.HasSchemeName("Scheme").HasScopes(s => s.HasScope("Customers.Update")));
+
+            customers.HasDeleteRestrictions()
+                .HasPermissions(p => p.HasSchemeName("Scheme").HasScopes(s => s.HasScope("Customers.Delete")));
+
+            getTopCustomer.HasOperationRestrictions()
+                .HasPermissions(p => p.HasSchemeName("Scheme").HasScopes(s => s.HasScope("Customers.GetTop")));
+
+            getAge.HasOperationRestrictions()
+                .HasPermissions(p => p.HasSchemeName("Scheme").HasScopes(s => s.HasScope("Customers.GetAge")));
+
+            orders.HasReadRestrictions()
+               .HasPermissions(p => p.HasSchemeName("Scheme").HasScopes(s => s.HasScope("Orders.Read")))
+               .HasReadByKeyRestrictions(r => r.HasPermissions(p =>
+                   p.HasSchemeName("Scheme").HasScopes(s => s.HasScope("Orders.ReadByKey"))));
+
+            customers.HasNavigationRestrictions()
+                .HasRestrictedProperties(props => props
+                    .HasNavigationProperty(new EdmNavigationPropertyPathExpression("Customers/Orders"))
+                    .HasReadRestrictions(r => r
+                        .HasPermissions(p => p.HasSchemeName("Sheme").HasScopes(s => s.HasScope("Customers.ReadOrders")))
+                        .HasReadByKeyRestrictions(r => r.HasPermissions(p =>
+                            p.HasSchemeName("Scheme").HasScopes(s => s.HasScope("Customers.ReadOrderByKey"))))))
+                .HasRestrictedProperties(props => props
+                    .HasNavigationProperty(new EdmNavigationPropertyPathExpression("Customers/Order"))
+                    .HasReadRestrictions(r => r
+                        .HasPermissions(p => p.HasSchemeName("Scheme").HasScopes(s => s.HasScope("Customers.ReadOrder")))));
+
 
             var model = builder.GetEdmModel();
-            AddPermissions(model as EdmModel);
 
             return model;
-        }
-
-        private static void AddPermissions(EdmModel model)
-        {
-            var readRestrictions = "Org.OData.Capabilities.V1.ReadRestrictions";
-            var insertRestrictions = "Org.OData.Capabilities.V1.InsertRestrictions";
-            var updateRestrictions = "Org.OData.Capabilities.V1.UpdateRestrictions";
-            var deleteRestrictions = "Org.OData.Capabilities.V1.DeleteRestrictions";
-            var operationRestrictions = "Org.OData.Capabilities.V1.OperationRestrictions";
-            var navigationRestrictions = "Org.OData.Capabilities.V1.NavigationRestrictions";
-
-            var customers = model.FindDeclaredEntitySet("Customers");
-            var orders = model.FindDeclaredEntitySet("Orders");
-            var getTopCustomer = model.SchemaElements.OfType<IEdmOperation>().First(o => o.Name == "GetTopCustomer");
-            var getAge = model.SchemaElements.OfType<IEdmOperation>().First(o => o.Name == "GetAge");
-
-
-            model.AddVocabularyAnnotation(new EdmVocabularyAnnotation(
-                customers,
-                model.FindTerm(readRestrictions),
-                new EdmRecordExpression(
-                    CreatePermissionProperty(new string[] { "Customers.Read", "Product.ReadAll" }),
-                    new EdmPropertyConstructor("ReadByKeyRestrictions", CreatePermission(new[] { "Customers.ReadByKey" })))));
-
-            AddPermissionsTo(model, customers, insertRestrictions, "Customers.Insert");
-            AddPermissionsTo(model, customers, updateRestrictions, "Customers.Update");
-            AddPermissionsTo(model, customers, deleteRestrictions, "Customers.Delete");
-            AddPermissionsTo(model, getTopCustomer, operationRestrictions, "Customers.GetTop");
-            AddPermissionsTo(model, getAge, operationRestrictions, "Customer.GetAge");
-
-            model.AddVocabularyAnnotation(new EdmVocabularyAnnotation(
-                orders,
-                model.FindTerm(readRestrictions),
-                new EdmRecordExpression(
-                    CreatePermissionProperty(new string[] { "Orders.Read" }),
-                    new EdmPropertyConstructor("ReadByKeyRestrictions", CreatePermission("Orders.ReadByKey")))));
-
-            model.AddVocabularyAnnotation(new EdmVocabularyAnnotation(
-                customers,
-                model.FindTerm(navigationRestrictions),
-                new EdmRecordExpression(
-                    new EdmPropertyConstructor("RestrictedProperties", new EdmCollectionExpression(
-                        new EdmRecordExpression(
-                            new EdmPropertyConstructor("NavigationProperty", new EdmNavigationPropertyPathExpression("Customers/Orders")),
-                            new EdmPropertyConstructor("ReadRestrictions", new EdmRecordExpression(
-                                CreatePermissionProperty(new string[] { "Customers.ReadOrders" }),
-                                new EdmPropertyConstructor("ReadByKeyRestrictions", CreatePermission(new[] { "Customers.ReadOrderByKey" } ))))),
-                        new EdmRecordExpression(
-                            new EdmPropertyConstructor("NavigationProperty", new EdmNavigationPropertyPathExpression("Customers/Order")),
-                            new EdmPropertyConstructor("ReadRestrictions", new EdmRecordExpression(
-                                CreatePermissionProperty(new string[] { "Customers.ReadOrder" })))))))));
-        }
-
-        public static void AddPermissionsTo(EdmModel model, IEdmVocabularyAnnotatable target, string restrictionName, params string[] scopes)
-        {
-            model.AddVocabularyAnnotation(new EdmVocabularyAnnotation(
-                target,
-                model.FindTerm(restrictionName),
-                CreatePermission(scopes)));
-        }
-
-        public static IEdmExpression CreatePermission(params string[] scopeNames)
-        {
-            var restriction = new EdmRecordExpression(
-                CreatePermissionProperty(scopeNames));
-
-            return restriction;
-        }
-
-        public static IEdmPropertyConstructor CreatePermissionProperty(params string[] scopeNames)
-        {
-            var scopes = scopeNames.Select(scope => new EdmRecordExpression(
-                   new EdmPropertyConstructor("Scope", new EdmStringConstant(scope)),
-                   new EdmPropertyConstructor("RestrictedProperties", new EdmStringConstant("*"))));
-
-            var permission = new EdmRecordExpression(
-                new EdmPropertyConstructor("SchemeName", new EdmStringConstant("AuthScheme")),
-                new EdmPropertyConstructor("Scopes", new EdmCollectionExpression(scopes)));
-
-            var property = new EdmPropertyConstructor("Permissions", new EdmCollectionExpression(permission));
-            return property;
         }
     }
 }
