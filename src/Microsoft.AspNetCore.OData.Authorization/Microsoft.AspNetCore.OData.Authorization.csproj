@@ -5,6 +5,9 @@
     <SignAssembly>true</SignAssembly>
     <DelaySign>true</DelaySign>
     <AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)\..\..\tools\35MSSharedLib1024.snk</AssemblyOriginatorKeyFile>
+    <Authors>Microsoft</Authors>
+    <Company>Microsoft</Company>
+    <Version>0.1.0</Version>
   </PropertyGroup>
 
   <ItemGroup>
