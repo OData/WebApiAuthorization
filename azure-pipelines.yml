@@ -20,6 +20,7 @@ variables:
   ProductDir: $(Build.SourcesDirectory)\src\$(ProductName)
   TestDir: $(Build.SourcesDirectory)\test\$(ProductName).Tests
   ProductBinPath: '$(ProductDir)\bin\$(BuildConfiguration)'
+  TestBinPath: '$(TestDir)\bin\$(BuildConfiguration)'
   mainDll: '$(ProductName).dll'
   testDll: '$(ProductName).Tests.dll'
   skipComponentGovernanceDetection: true
@@ -60,6 +61,20 @@ steps:
     projects: '$(TestDir)\$(ProductName).Tests.csproj'
     arguments: '--configuration $(BuildConfiguration) --no-incremental'
 
+# because the assemblies are delay-signed, we need to disable
+# strong name validation so that the tests may run,
+# otherwise our assemblies will fail to load
+- task: Powershell@2
+  displayName: 'Skip strong name validation'
+  inputs:
+    targetType: 'inline'
+    script: |
+      & "$(snExe)" /Vr $(ProductBinPath)\$(mainDll)
+      & "$(snExe64)" /Vr $(ProductBinPath)\$(mainDll)
+      & "$(snExe)" /Vr $(TestBinPath)\$(testDll)
+      & "$(snExe64)" /Vr $(TestBinPath)\$(testDll)
+  enabled: false
+
 # Run the Unit test
 - task: DotNetCoreCLI@2
   displayName: 'Unit Tests ($(ProductName).Tests.csproj) '
@@ -82,3 +97,97 @@ steps:
     toolMajorVersion: 'V2'
     scanFolder: '$(Build.SourcesDirectory)\test'
     debugMode: false
+
+- task: EsrpCodeSigning@1
+  displayName: 'ESRP CodeSign - Product Signing'
+  inputs:
+    ConnectedServiceName: 'ESRP CodeSigning - OData'
+    FolderPath: '$(ProductBinPath)'
+    Pattern: 'Microsoft.AspNetCore.OData.Authorization.dll'
+    signConfigType: inlineSignParams
+    inlineOperation: |
+     [
+       {
+         "keyCode": "MSSharedLibSnKey",
+         "operationSetCode": "StrongNameSign",
+         "parameters": null,
+         "toolName": "sn.exe",
+         "toolVersion": "V4.6.1586.0"
+       },
+       {
+         "keyCode": "MSSharedLibSnKey",
+         "operationSetCode": "StrongNameVerify",
+         "parameters": null,
+         "toolName": "sn.exe",
+         "toolVersion": "V4.6.1586.0"
+       },
+       {
+         "keyCode": "CP-230012",
+         "operationSetCode": "SigntoolSign",
+         "parameters": [
+         {
+           "parameterName": "OpusName",
+           "parameterValue": "TestSign"
+         },
+         {
+           "parameterName": "OpusInfo",
+           "parameterValue": "http://test"
+         },
+         {
+           "parameterName": "PageHash",
+           "parameterValue": "/NPH"
+         },
+         {
+           "parameterName": "TimeStamp",
+           "parameterValue": "/t \"http://ts4096.gtm.microsoft.com/TSS/AuthenticodeTS\""
+         }
+         ],
+         "toolName": "signtool.exe",
+         "toolVersion": "6.2.9304.0"
+       },
+       {
+         "keyCode": "CP-230012",
+         "operationSetCode": "SigntoolSign",
+         "parameters": [
+         {
+           "parameterName": "OpusName",
+           "parameterValue": "TestSign"
+         },
+         {
+           "parameterName": "OpusInfo",
+           "parameterValue": "http://test"
+         },
+         {
+           "parameterName": "Append",
+           "parameterValue": "/AS"
+         },
+         {
+           "parameterName": "PageHash",
+           "parameterValue": "/NPH"
+         },
+         {
+           "parameterName": "FileDigest",
+           "parameterValue": "/fd sha256"
+         },
+         {
+           "parameterName": "TimeStamp",
+           "parameterValue": "/tr \"http://rfc3161.gtm.corp.microsoft.com/TSS/HttpTspServer\" /td sha256"
+         }
+         ],
+         "toolName": "signtool.exe",
+         "toolVersion": "6.2.9304.0"
+       },
+       {
+         "keyCode": "CP-230012",
+         "operationSetCode": "SigntoolVerify",
+         "parameters": [
+         {
+           "parameterName": "VerifyAll",
+           "parameterValue": "/all"
+         }
+         ],
+         "toolName": "signtool.exe",
+         "toolVersion": "6.2.9304.0"
+       }
+     ]
+    VerboseLogin: true
