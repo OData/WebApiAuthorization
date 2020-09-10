@@ -191,3 +191,18 @@ steps:
        }
      ]
     VerboseLogin: true
+
+- task: CopyFiles@2
+  displayName: 'Copy Files - Stage Product'
+  inputs:
+    SourceFolder: '$(ProductBinPath)'
+    Contents: '$(mainDll)'
+    TargetFolder: '$(Build.ArtifactStagingDirectory)\Product'
+
+# this allows to download the built dll as an artifact (without the vsix)
+- task: PublishBuildArtifacts@1
+  displayName: 'Publish Artifact - Product'
+  inputs:
+    PathtoPublish: '$(Build.ArtifactStagingDirectory)\Product'
+    ArtifactName: 'Product'
+    publishLocation: 'Container'
