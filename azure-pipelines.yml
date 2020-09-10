@@ -14,13 +14,14 @@ pool:
 variables:
   BuildPlatform: 'Any CPU'
   BuildConfiguration: 'Release'
-  nExe: 'C:\Program Files (x86)\Microsoft SDKs\Windows\v10.0A\bin\NETFX 4.8 Tools\sn.exe'
+  TargetFramework: 'netcoreapp3.1'
+  snExe: 'C:\Program Files (x86)\Microsoft SDKs\Windows\v10.0A\bin\NETFX 4.8 Tools\sn.exe'
   snExe64: 'C:\Program Files (x86)\Microsoft SDKs\Windows\v10.0A\bin\NETFX 4.8 Tools\x64\sn.exe'
   ProductName: 'Microsoft.AspNetCore.OData.Authorization'
   ProductDir: $(Build.SourcesDirectory)\src\$(ProductName)
   TestDir: $(Build.SourcesDirectory)\test\$(ProductName).Tests
-  ProductBinPath: '$(ProductDir)\bin\$(BuildConfiguration)'
-  TestBinPath: '$(TestDir)\bin\$(BuildConfiguration)'
+  ProductBinPath: '$(ProductDir)\bin\$(BuildConfiguration)\$(TargetFramework)'
+  TestBinPath: '$(TestDir)\bin\$(BuildConfiguration)\$(TargetFramework)'
   mainDll: '$(ProductName).dll'
   testDll: '$(ProductName).Tests.dll'
   skipComponentGovernanceDetection: true
@@ -103,7 +104,7 @@ steps:
   inputs:
     ConnectedServiceName: 'ESRP CodeSigning - OData'
     FolderPath: '$(ProductBinPath)'
-    Pattern: 'Microsoft.AspNetCore.OData.Authorization.dll'
+    Pattern: '$(mainDll)'
     signConfigType: inlineSignParams
     inlineOperation: |
      [
@@ -199,7 +200,7 @@ steps:
     Contents: '$(mainDll)'
     TargetFolder: '$(Build.ArtifactStagingDirectory)\Product'
 
-# this allows to download the built dll as an artifact (without the vsix)
+# this makes it possible to download the built dll as an artifact
 - task: PublishBuildArtifacts@1
   displayName: 'Publish Artifact - Product'
   inputs:
