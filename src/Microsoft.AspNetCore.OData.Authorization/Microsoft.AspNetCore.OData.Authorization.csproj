@@ -5,17 +5,6 @@
     <SignAssembly>true</SignAssembly>
     <DelaySign>true</DelaySign>
     <AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)\..\..\tools\35MSSharedLib1024.snk</AssemblyOriginatorKeyFile>
-    <Authors>Microsoft Corporation.</Authors>
-    <Company>Microsoft Corporation.</Company>
-    <Version>$(VersionFullSemantic)</Version>
-    <Copyright>© Microsoft Corporation. All rights reserved.</Copyright>
-    <PackageLicenseExpression></PackageLicenseExpression>
-    <PackageLicenseFile>License.txt</PackageLicenseFile>
-    <PackageProjectUrl>https://github.com/OData/WebApiAuthorization</PackageProjectUrl>
-    <Description>This library provides middleware that enforces permissions specified in an OData EDM model on OData ASP.NET Core Web API endpoints.</Description>
-    <RepositoryUrl>https://github.com/OData/WebApiAuthorization</RepositoryUrl>
-    <PackageTags>OData, Web API, ASP.NET Core, Permissions, Authorization</PackageTags>
-    <Product>Microsoft OData Web API Authorization</Product>
   </PropertyGroup>
 
   <ItemGroup>

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package>
+  <metadata>
+    <id>Microsoft.AspNetCore.OData.Authorization</id>
+    <title>Microsoft OData Web API Authorization</title>
+    <version>$VersionNugetSemantic$</version>
+    <authors>Microsoft</authors>
+    <copyright>&#169; Microsoft Corporation. All rights reserved.</copyright>
+    <description>This library provides middleware that enforces permissions specified in an OData EDM model on OData ASP.NET Core Web API endpoints.</description>
+    <language>en-US</language>
+    <projectUrl>http://github.com/OData/WebApiAuthorization</projectUrl>
+    <license type="expression">MIT</license>
+    <requireLicenseAcceptance>true</requireLicenseAcceptance>
+    <tags>Microsoft OData Authorization, OData Web Api, Authorization, Permissions</tags>
+    <icon>images\odata.png</icon>
+    <repository type="git" url="https://github.com/OData/WebApiAuthorization.git" branch="master" />
+    <dependencies>
+        <group targetFramework=".NETCoreApp3.1">
+          <dependency id="Microsoft.AspNetCore.OData" version="$ODataWebApiPackageDependency$" />
+        </group>
+      </dependencies>
+  </metadata>
+  <files>
+    <file src="$ProductRoot$\Microsoft.AspNetCore.OData.Authorization.dll" target="lib\netcoreapp3.1" />
+    <file src="$ProductRoot$\Microsoft.AspNetCore.OData.Authorization.pdb" target="lib\netcoreapp3.1" />
+    <file src="$SourcesRoot$\images\odata.png" target="images\" />
+  </files>
+</package>

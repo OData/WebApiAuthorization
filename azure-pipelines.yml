@@ -240,7 +240,7 @@ steps:
   displayName: 'NuGet - pack Microsoft.AspNetCore.OData.Authorization.Release.nuspec '
   inputs:
     command: custom
-    arguments: 'pack $(ProductDir)\$(ProductName).csproj -NonInteractive -OutputDirectory $(Build.ArtifactStagingDirectory)\Nuget -Properties Configuration=$(BuildConfiguration);ProductRoot=$(ProductBinPath);SourcesRoot=$(Build.SourcesDirectory);VersionFullSemantic=$(VersionFullSemantic);VersionNuGetSemantic=$(VersionNuGetSemantic);ODataWebApiPackageDependency="$(ODataWebApiPackageDependency)" -Verbosity Detailed -Symbols -Symbols -SymbolPackageFormat snupkg'
+    arguments: 'pack $(ProductDir)\$(ProductName).Release.nuspec -NonInteractive -OutputDirectory $(Build.ArtifactStagingDirectory)\Nuget -Properties Configuration=$(BuildConfiguration);ProductRoot=$(ProductBinPath);SourcesRoot=$(Build.SourcesDirectory);VersionFullSemantic=$(VersionFullSemantic);VersionNuGetSemantic=$(VersionNuGetSemantic);ODataWebApiPackageDependency="$(ODataWebApiPackageDependency)" -Verbosity Detailed -Symbols -Symbols -SymbolPackageFormat snupkg'
 
 # Sign NuGet packages
 - task: EsrpCodeSigning@1
