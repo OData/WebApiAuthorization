@@ -7,7 +7,7 @@
     <AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)\..\..\tools\35MSSharedLib1024.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
 
-  <Import Project="..\..\build\build.props" />
+  <Import Project="$(MSBuildThisFileDirectory)\..\..\build\build.props" />
 
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
