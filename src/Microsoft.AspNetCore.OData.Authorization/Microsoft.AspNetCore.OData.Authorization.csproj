@@ -7,7 +7,7 @@
     <AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)\..\..\tools\35MSSharedLib1024.snk</AssemblyOriginatorKeyFile>
     <Authors>Microsoft Corporation.</Authors>
     <Company>Microsoft Corporation.</Company>
-    <Version>0.1.0</Version>
+    <Version>$(VersionFullSemantic)</Version>
     <Copyright>© Microsoft Corporation. All rights reserved.</Copyright>
     <PackageLicenseExpression></PackageLicenseExpression>
     <PackageLicenseFile>License.txt</PackageLicenseFile>

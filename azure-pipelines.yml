@@ -8,6 +8,16 @@ trigger:
 pr:
 - master
 
+# Nightly using schedules
+schedules:
+- cron: "0 0 * * Mon,Tue,Wed,Thu,Fri"
+  displayName: midnightly build
+  branches:
+    include:
+    - master
+    # remove authorization branch from schedule after it has been merged
+    - authorization
+
 pool:
   vmImage: 'windows-latest'
 
@@ -207,3 +217,71 @@ steps:
     PathtoPublish: '$(Build.ArtifactStagingDirectory)\Product'
     ArtifactName: 'Product'
     publishLocation: 'Container'
+
+## NuGet Packages
+
+- task: MSBuild@1
+  displayName: 'Get Nuget Package Metadata'
+  inputs:
+    solution: '$(Build.SourcesDirectory)\build\GetNugetPackageMetadata.proj'
+    platform: '$(BuildPlatform)'
+    configuration: '$(BuildConfiguration)'
+
+# pack nightly NuGet package
+- task: NuGetCommand@2
+  # condition: and(always(), eq(variables['Build.Reason'], 'Schedule')) # only run for scheduled (nightly) builds
+  displayName: 'NuGet - pack Microsoft.OData.ModelBuilder.Nightly.nuspec '
+  inputs:
+    command: custom
+    arguments: 'pack $(ProductDir)\(ProductName).csproj -NonInteractive -OutputDirectory $(Build.ArtifactStagingDirectory)\Nuget -Properties Configuration=$(BuildConfiguration);ProductRoot=$(ProductBinPath);SourcesRoot=$(Build.SourcesDirectory);VersionFullSemantic=$(VersionFullSemantic);NightlyBuildVersion=$(VersionNugetNightlyBuild);VersionNuGetSemantic=$(VersionNuGetSemantic);SystemComponentPackageDependency="$(SystemComponentPackageDependency)";ODataWebApiPackageDependency="$(ODataWebApiPackageDependency)" -Verbosity Detailed -Symbols -Symbols -SymbolPackageFormat snupkg'
+
+# pack release NuGet package
+- task: NuGetCommand@2
+  displayName: 'NuGet - pack Microsoft.OData.ModelBuilder.Release.nuspec '
+  inputs:
+    command: custom
+    arguments: 'pack $(ProductDir)\(ProductName).csproj -NonInteractive -OutputDirectory $(Build.ArtifactStagingDirectory)\Nuget -Properties Configuration=$(BuildConfiguration);ProductRoot=$(ProductBinPath);SourcesRoot=$(Build.SourcesDirectory);VersionFullSemantic=$(VersionFullSemantic);VersionNuGetSemantic=$(VersionNuGetSemantic);SystemComponentPackageDependency="$(SystemComponentPackageDependency)";ODataWebApiPackageDependency="$(ODataWebApiPackageDependency)" -Verbosity Detailed -Symbols -Symbols -SymbolPackageFormat snupkg'
+
+# Sign NuGet packages
+- task: EsrpCodeSigning@1
+  displayName: 'ESRP CodeSigning Nuget Packages'
+  inputs:
+    ConnectedServiceName: 'ESRP CodeSigning - OData'
+    FolderPath: '$(Build.ArtifactStagingDirectory)\Nuget'
+    Pattern: '*.nupkg'
+    signConfigType: inlineSignParams
+    inlineOperation: |
+     [
+         {
+             "keyCode": "CP-401405",
+             "operationSetCode": "NuGetSign",
+             "parameters": [ ],
+             "toolName": "sign",
+             "toolVersion": "1.0"
+         },
+         {
+             "keyCode": "CP-401405",
+             "operationSetCode": "NuGetVerify",
+             "parameters": [ ],
+             "toolName": "sign",
+             "toolVersion": "1.0"
+         }
+     ]
+    VerboseLogin: true
+
+
+- task: PublishBuildArtifacts@1
+  displayName: 'Publish Artifact - Nuget Packages'
+  inputs:
+    PathtoPublish: '$(Build.ArtifactStagingDirectory)\Nuget'
+    ArtifactName: Nuget
+
+# Push the odata model builder nightly to MyGet
+- task: NuGetCommand@2
+  # condition: and(always(), eq(variables['Build.Reason'], 'Schedule')) # only run for scheduled (nightly) builds
+  displayName: 'NuGet push - Nightly packages to MyGet'
+  inputs:
+    command: push
+    packagesToPush: '$(Build.ArtifactStagingDirectory)\Nuget\*Nightly*.nupkg'
+    nuGetFeedType: external
+    publishFeedCredentials: 'MyGet.org - OData.net new nightly feed'
