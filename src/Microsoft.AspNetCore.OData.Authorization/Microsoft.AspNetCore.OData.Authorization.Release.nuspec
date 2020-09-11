@@ -11,7 +11,7 @@
     <projectUrl>http://github.com/OData/WebApiAuthorization</projectUrl>
     <license type="expression">MIT</license>
     <requireLicenseAcceptance>true</requireLicenseAcceptance>
-    <tags>Microsoft OData Authorization, OData Web Api, Authorization, Permissions</tags>
+    <tags>Microsoft OData Authorization WebApi Permissions</tags>
     <icon>images\odata.png</icon>
     <repository type="git" url="https://github.com/OData/WebApiAuthorization.git" branch="master" />
     <dependencies>
