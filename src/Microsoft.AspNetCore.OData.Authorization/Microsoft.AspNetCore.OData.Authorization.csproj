@@ -7,7 +7,17 @@
     <AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)\..\..\tools\35MSSharedLib1024.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
 
-  <Import Project="$(MSBuildThisFileDirectory)\..\..\build\build.props" />
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <DefineConstants>TRACE;DEBUG</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>portable</DebugType>
+    <Optimize>true</Optimize>
+    <DefineConstants>TRACE</DefineConstants>
+  </PropertyGroup>
 
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
