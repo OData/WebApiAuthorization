@@ -233,7 +233,7 @@ steps:
   displayName: 'NuGet - pack Microsoft.OData.ModelBuilder.Nightly.nuspec '
   inputs:
     command: custom
-    arguments: 'pack $(ProductDir)\$(ProductName).csproj -NonInteractive -OutputDirectory $(Build.ArtifactStagingDirectory)\Nuget -Properties Configuration=$(BuildConfiguration);ProductRoot=$(ProductBinPath);SourcesRoot=$(Build.SourcesDirectory);VersionFullSemantic=$(VersionFullSemantic);NightlyBuildVersion=$(VersionNugetNightlyBuild);VersionNuGetSemantic=$(VersionNuGetSemantic);SystemComponentPackageDependency="$(SystemComponentPackageDependency)";ODataWebApiPackageDependency="$(ODataWebApiPackageDependency)" -Verbosity Detailed -Symbols -Symbols -SymbolPackageFormat snupkg'
+    arguments: 'pack $(ProductDir)\$(ProductName).Nightly.nuspec -NonInteractive -OutputDirectory $(Build.ArtifactStagingDirectory)\Nuget -Properties Configuration=$(BuildConfiguration);ProductRoot=$(ProductBinPath);SourcesRoot=$(Build.SourcesDirectory);VersionFullSemantic=$(VersionFullSemantic);NightlyBuildVersion=$(VersionNugetNightlyBuild);VersionNuGetSemantic=$(VersionNuGetSemantic);SystemComponentPackageDependency="$(SystemComponentPackageDependency)";ODataWebApiPackageDependency="$(ODataWebApiPackageDependency)" -Verbosity Detailed -Symbols -Symbols -SymbolPackageFormat snupkg'
 
 # pack release NuGet package
 - task: NuGetCommand@2
