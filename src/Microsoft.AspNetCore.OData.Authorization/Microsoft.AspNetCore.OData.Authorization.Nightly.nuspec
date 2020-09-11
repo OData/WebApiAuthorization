@@ -22,7 +22,6 @@
   </metadata>
   <files>
     <file src="$ProductRoot$\Microsoft.AspNetCore.OData.Authorization.dll" target="lib\netcoreapp3.1" />
-    <file src="$ProductRoot$\Microsoft.AspNetCore.OData.Authorization.xml" target="lib\netcoreapp3.1" />
     <file src="$ProductRoot$\Microsoft.AspNetCore.OData.Authorization.pdb" target="lib\netcoreapp3.1" />
     <file src="$SourcesRoot$\images\odata.png" target="images\" />
   </files>
