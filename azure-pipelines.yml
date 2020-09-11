@@ -229,7 +229,7 @@ steps:
 
 # pack nightly NuGet package
 - task: NuGetCommand@2
-  # condition: and(always(), eq(variables['Build.Reason'], 'Schedule')) # only run for scheduled (nightly) builds
+  condition: and(always(), eq(variables['Build.Reason'], 'Schedule')) # only run for scheduled (nightly) builds
   displayName: 'NuGet - pack Microsoft.AspNetCore.OData.Authorization.Nightly.nuspec '
   inputs:
     command: custom
@@ -278,7 +278,7 @@ steps:
 
 # Push the odata model builder nightly to MyGet
 - task: NuGetCommand@2
-  # condition: and(always(), eq(variables['Build.Reason'], 'Schedule')) # only run for scheduled (nightly) builds
+  condition: and(always(), eq(variables['Build.Reason'], 'Schedule')) # only run for scheduled (nightly) builds
   displayName: 'NuGet push - Nightly packages to MyGet'
   inputs:
     command: push
