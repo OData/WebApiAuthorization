@@ -230,14 +230,14 @@ steps:
 # pack nightly NuGet package
 - task: NuGetCommand@2
   # condition: and(always(), eq(variables['Build.Reason'], 'Schedule')) # only run for scheduled (nightly) builds
-  displayName: 'NuGet - pack Microsoft.OData.ModelBuilder.Nightly.nuspec '
+  displayName: 'NuGet - pack Microsoft.AspNetCore.OData.Authorization.Nightly.nuspec '
   inputs:
     command: custom
     arguments: 'pack $(ProductDir)\$(ProductName).Nightly.nuspec -NonInteractive -OutputDirectory $(Build.ArtifactStagingDirectory)\Nuget -Properties Configuration=$(BuildConfiguration);ProductRoot=$(ProductBinPath);SourcesRoot=$(Build.SourcesDirectory);VersionFullSemantic=$(VersionFullSemantic);NightlyBuildVersion=$(VersionNugetNightlyBuild);VersionNuGetSemantic=$(VersionNuGetSemantic);SystemComponentPackageDependency="$(SystemComponentPackageDependency)";ODataWebApiPackageDependency="$(ODataWebApiPackageDependency)" -Verbosity Detailed -Symbols -Symbols -SymbolPackageFormat snupkg'
 
 # pack release NuGet package
 - task: NuGetCommand@2
-  displayName: 'NuGet - pack Microsoft.OData.ModelBuilder.Release.nuspec '
+  displayName: 'NuGet - pack Microsoft.AspNetCore.OData.Authorization.Release.nuspec '
   inputs:
     command: custom
     arguments: 'pack $(ProductDir)\$(ProductName).csproj -NonInteractive -OutputDirectory $(Build.ArtifactStagingDirectory)\Nuget -Properties Configuration=$(BuildConfiguration);ProductRoot=$(ProductBinPath);SourcesRoot=$(Build.SourcesDirectory);VersionFullSemantic=$(VersionFullSemantic);VersionNuGetSemantic=$(VersionNuGetSemantic);SystemComponentPackageDependency="$(SystemComponentPackageDependency)";ODataWebApiPackageDependency="$(ODataWebApiPackageDependency)" -Verbosity Detailed -Symbols -Symbols -SymbolPackageFormat snupkg'
