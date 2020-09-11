@@ -7,7 +7,8 @@
     <AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)\..\..\tools\35MSSharedLib1024.snk</AssemblyOriginatorKeyFile>
     <Authors>Microsoft Corporation.</Authors>
     <Company>Microsoft Corporation.</Company>
-    <Version>$(VersionFullSemantic)</Version>
+    <Version Condition="'$(NightlyBuildVersion)' == ''">$(VersionFullSemantic)</Version>
+    <Version Condition="'$(NightlyBuildVersion)' != ''">$(NightlyBuildVersion)</Version>
     <Copyright>© Microsoft Corporation. All rights reserved.</Copyright>
     <PackageLicenseExpression></PackageLicenseExpression>
     <PackageLicenseFile>License.txt</PackageLicenseFile>
@@ -16,6 +17,7 @@
     <RepositoryUrl>https://github.com/OData/WebApiAuthorization</RepositoryUrl>
     <PackageTags>OData, Web API, ASP.NET Core, Permissions, Authorization</PackageTags>
     <Product>Microsoft OData Web API Authorization</Product>
+    <PackageVersion>
   </PropertyGroup>
 
   <ItemGroup>
