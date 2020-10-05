@@ -1,0 +1,287 @@
+name: $(TeamProject)_$(BuildDefinitionName)_$(SourceBranchName)_$(Date:yyyyMMdd)$(Rev:.r)
+
+trigger:
+  branches:
+    include:
+    - master
+
+pr:
+- master
+
+# Nightly using schedules
+schedules:
+- cron: "0 0 * * Mon,Tue,Wed,Thu,Fri"
+  displayName: midnightly build
+  branches:
+    include:
+    - master
+    # remove authorization branch from schedule after it has been merged
+    - authorization
+
+pool:
+  vmImage: 'windows-latest'
+
+variables:
+  BuildPlatform: 'Any CPU'
+  BuildConfiguration: 'Release'
+  TargetFramework: 'netcoreapp3.1'
+  snExe: 'C:\Program Files (x86)\Microsoft SDKs\Windows\v10.0A\bin\NETFX 4.8 Tools\sn.exe'
+  snExe64: 'C:\Program Files (x86)\Microsoft SDKs\Windows\v10.0A\bin\NETFX 4.8 Tools\x64\sn.exe'
+  ProductName: 'Microsoft.AspNetCore.OData.Authorization'
+  ProductDir: $(Build.SourcesDirectory)\src\$(ProductName)
+  TestDir: $(Build.SourcesDirectory)\test\$(ProductName).Tests
+  ProductBinPath: '$(ProductDir)\bin\$(BuildConfiguration)\$(TargetFramework)'
+  TestBinPath: '$(TestDir)\bin\$(BuildConfiguration)\$(TargetFramework)'
+  mainDll: '$(ProductName).dll'
+  testDll: '$(ProductName).Tests.dll'
+  skipComponentGovernanceDetection: true
+
+steps:
+
+- task: PoliCheck@1
+  displayName: 'Run PoliCheck ".\src"'
+  inputs:
+    inputType: CmdLine
+    cmdLineArgs: '/F:$(Build.SourcesDirectory)/src /T:9 /Sev:"1|2" /PE:2 /O:poli_result_src.xml'
+
+- task: PoliCheck@1
+  displayName: 'Run PoliCheck ".\test"'
+  inputs:
+    inputType: CmdLine
+    cmdLineArgs: '/F:$(Build.SourcesDirectory)/test /T:9 /Sev:"1|2" /PE:2 /O:poli_result_test.xml'
+
+
+# Install the nuget tooler.
+- task: NuGetToolInstaller@0
+  displayName: 'Use NuGet >=5.2.0'
+  inputs:
+    versionSpec: '>=5.2.0'
+    checkLatest: true
+
+# Build the Product project
+- task: DotNetCoreCLI@2
+  displayName: 'build $(ProductName).csproj '
+  inputs:
+    projects: '$(ProductDir)\$(ProductName).csproj'
+    arguments: '--configuration $(BuildConfiguration) --no-incremental'
+
+# Build the Unit test project
+- task: DotNetCoreCLI@2
+  displayName: 'build $(ProductName) Unit test project'
+  inputs:
+    projects: '$(TestDir)\$(ProductName).Tests.csproj'
+    arguments: '--configuration $(BuildConfiguration) --no-incremental'
+
+# because the assemblies are delay-signed, we need to disable
+# strong name validation so that the tests may run,
+# otherwise our assemblies will fail to load
+- task: Powershell@2
+  displayName: 'Skip strong name validation'
+  inputs:
+    targetType: 'inline'
+    script: |
+      & "$(snExe)" /Vr $(ProductBinPath)\$(mainDll)
+      & "$(snExe64)" /Vr $(ProductBinPath)\$(mainDll)
+      & "$(snExe)" /Vr $(TestBinPath)\$(testDll)
+      & "$(snExe64)" /Vr $(TestBinPath)\$(testDll)
+  enabled: false
+
+# Run the Unit test
+- task: DotNetCoreCLI@2
+  displayName: 'Unit Tests ($(ProductName).Tests.csproj) '
+  inputs:
+    command: test
+    projects: '$(TestDir)\$(ProductName).Tests.csproj'
+    arguments: '--configuration $(BuildConfiguration) --no-build'
+
+# CredScan
+- task: securedevelopmentteam.vss-secure-development-tools.build-task-credscan.CredScan@2
+  displayName: 'Run CredScan - Src'
+  inputs:
+    toolMajorVersion: 'V2'
+    scanFolder: '$(Build.SourcesDirectory)\src'
+    debugMode: false
+
+- task: securedevelopmentteam.vss-secure-development-tools.build-task-credscan.CredScan@2
+  displayName: 'Run CredScan - Test'
+  inputs:
+    toolMajorVersion: 'V2'
+    scanFolder: '$(Build.SourcesDirectory)\test'
+    debugMode: false
+
+- task: EsrpCodeSigning@1
+  displayName: 'ESRP CodeSign - Product Signing'
+  inputs:
+    ConnectedServiceName: 'ESRP CodeSigning - OData'
+    FolderPath: '$(ProductBinPath)'
+    Pattern: '$(mainDll)'
+    signConfigType: inlineSignParams
+    inlineOperation: |
+     [
+       {
+         "keyCode": "MSSharedLibSnKey",
+         "operationSetCode": "StrongNameSign",
+         "parameters": null,
+         "toolName": "sn.exe",
+         "toolVersion": "V4.6.1586.0"
+       },
+       {
+         "keyCode": "MSSharedLibSnKey",
+         "operationSetCode": "StrongNameVerify",
+         "parameters": null,
+         "toolName": "sn.exe",
+         "toolVersion": "V4.6.1586.0"
+       },
+       {
+         "keyCode": "CP-230012",
+         "operationSetCode": "SigntoolSign",
+         "parameters": [
+         {
+           "parameterName": "OpusName",
+           "parameterValue": "TestSign"
+         },
+         {
+           "parameterName": "OpusInfo",
+           "parameterValue": "http://test"
+         },
+         {
+           "parameterName": "PageHash",
+           "parameterValue": "/NPH"
+         },
+         {
+           "parameterName": "TimeStamp",
+           "parameterValue": "/t \"http://ts4096.gtm.microsoft.com/TSS/AuthenticodeTS\""
+         }
+         ],
+         "toolName": "signtool.exe",
+         "toolVersion": "6.2.9304.0"
+       },
+       {
+         "keyCode": "CP-230012",
+         "operationSetCode": "SigntoolSign",
+         "parameters": [
+         {
+           "parameterName": "OpusName",
+           "parameterValue": "TestSign"
+         },
+         {
+           "parameterName": "OpusInfo",
+           "parameterValue": "http://test"
+         },
+         {
+           "parameterName": "Append",
+           "parameterValue": "/AS"
+         },
+         {
+           "parameterName": "PageHash",
+           "parameterValue": "/NPH"
+         },
+         {
+           "parameterName": "FileDigest",
+           "parameterValue": "/fd sha256"
+         },
+         {
+           "parameterName": "TimeStamp",
+           "parameterValue": "/tr \"http://rfc3161.gtm.corp.microsoft.com/TSS/HttpTspServer\" /td sha256"
+         }
+         ],
+         "toolName": "signtool.exe",
+         "toolVersion": "6.2.9304.0"
+       },
+       {
+         "keyCode": "CP-230012",
+         "operationSetCode": "SigntoolVerify",
+         "parameters": [
+         {
+           "parameterName": "VerifyAll",
+           "parameterValue": "/all"
+         }
+         ],
+         "toolName": "signtool.exe",
+         "toolVersion": "6.2.9304.0"
+       }
+     ]
+    VerboseLogin: true
+
+- task: CopyFiles@2
+  displayName: 'Copy Files - Stage Product'
+  inputs:
+    SourceFolder: '$(ProductBinPath)'
+    Contents: '$(mainDll)'
+    TargetFolder: '$(Build.ArtifactStagingDirectory)\Product'
+
+# this makes it possible to download the built dll as an artifact
+- task: PublishBuildArtifacts@1
+  displayName: 'Publish Artifact - Product'
+  inputs:
+    PathtoPublish: '$(Build.ArtifactStagingDirectory)\Product'
+    ArtifactName: 'Product'
+    publishLocation: 'Container'
+
+## NuGet Packages
+
+- task: MSBuild@1
+  displayName: 'Get Nuget Package Metadata'
+  inputs:
+    solution: '$(Build.SourcesDirectory)\build\GetNugetPackageMetadata.proj'
+    platform: '$(BuildPlatform)'
+    configuration: '$(BuildConfiguration)'
+
+# pack nightly NuGet package
+- task: NuGetCommand@2
+  condition: and(always(), eq(variables['Build.Reason'], 'Schedule')) # only run for scheduled (nightly) builds
+  displayName: 'NuGet - pack Microsoft.AspNetCore.OData.Authorization.Nightly.nuspec '
+  inputs:
+    command: custom
+    arguments: 'pack $(ProductDir)\$(ProductName).Nightly.nuspec -NonInteractive -OutputDirectory $(Build.ArtifactStagingDirectory)\Nuget -Properties Configuration=$(BuildConfiguration);ProductRoot=$(ProductBinPath);SourcesRoot=$(Build.SourcesDirectory);VersionFullSemantic=$(VersionFullSemantic);NightlyBuildVersion=$(VersionNugetNightlyBuild);VersionNuGetSemantic=$(VersionNuGetSemantic);ODataWebApiPackageDependency="$(ODataWebApiPackageDependency)" -Verbosity Detailed -Symbols -Symbols -SymbolPackageFormat snupkg'
+
+# pack release NuGet package
+- task: NuGetCommand@2
+  displayName: 'NuGet - pack Microsoft.AspNetCore.OData.Authorization.Release.nuspec '
+  inputs:
+    command: custom
+    arguments: 'pack $(ProductDir)\$(ProductName).Release.nuspec -NonInteractive -OutputDirectory $(Build.ArtifactStagingDirectory)\Nuget -Properties Configuration=$(BuildConfiguration);ProductRoot=$(ProductBinPath);SourcesRoot=$(Build.SourcesDirectory);VersionFullSemantic=$(VersionFullSemantic);VersionNuGetSemantic=$(VersionNuGetSemantic);ODataWebApiPackageDependency="$(ODataWebApiPackageDependency)" -Verbosity Detailed -Symbols -Symbols -SymbolPackageFormat snupkg'
+
+# Sign NuGet packages
+- task: EsrpCodeSigning@1
+  displayName: 'ESRP CodeSigning Nuget Packages'
+  inputs:
+    ConnectedServiceName: 'ESRP CodeSigning - OData'
+    FolderPath: '$(Build.ArtifactStagingDirectory)\Nuget'
+    Pattern: '*.nupkg'
+    signConfigType: inlineSignParams
+    inlineOperation: |
+     [
+         {
+             "keyCode": "CP-401405",
+             "operationSetCode": "NuGetSign",
+             "parameters": [ ],
+             "toolName": "sign",
+             "toolVersion": "1.0"
+         },
+         {
+             "keyCode": "CP-401405",
+             "operationSetCode": "NuGetVerify",
+             "parameters": [ ],
+             "toolName": "sign",
+             "toolVersion": "1.0"
+         }
+     ]
+    VerboseLogin: true
+
+
+- task: PublishBuildArtifacts@1
+  displayName: 'Publish Artifact - Nuget Packages'
+  inputs:
+    PathtoPublish: '$(Build.ArtifactStagingDirectory)\Nuget'
+    ArtifactName: Nuget
+
+# Push the odata model builder nightly to MyGet
+- task: NuGetCommand@2
+  condition: and(always(), eq(variables['Build.Reason'], 'Schedule')) # only run for scheduled (nightly) builds
+  displayName: 'NuGet push - Nightly packages to MyGet'
+  inputs:
+    command: push
+    packagesToPush: '$(Build.ArtifactStagingDirectory)\Nuget\*Nightly*.nupkg'
+    nuGetFeedType: external
+    publishFeedCredentials: 'MyGet.org - OData.net new nightly feed'
