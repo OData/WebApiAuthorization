@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <package>
   <metadata>
-    <id>Microsoft.AspNetCore.OData.Authorization</id>
+    <id>Microsoft.OData.WebApiAuthorization</id>
     <title>Microsoft OData Web API Authorization</title>
     <version>$VersionNugetSemantic$</version>
     <authors>Microsoft</authors>

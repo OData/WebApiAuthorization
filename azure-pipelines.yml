@@ -4,6 +4,7 @@ trigger:
   branches:
     include:
     - master
+    - test-nuget-push
 
 pr:
 - master
@@ -28,6 +29,7 @@ variables:
   snExe: 'C:\Program Files (x86)\Microsoft SDKs\Windows\v10.0A\bin\NETFX 4.8 Tools\sn.exe'
   snExe64: 'C:\Program Files (x86)\Microsoft SDKs\Windows\v10.0A\bin\NETFX 4.8 Tools\x64\sn.exe'
   ProductName: 'Microsoft.AspNetCore.OData.Authorization'
+  PackageName: 'Microsoft.OData.WebApiAuthorization'
   ProductDir: $(Build.SourcesDirectory)\src\$(ProductName)
   TestDir: $(Build.SourcesDirectory)\test\$(ProductName).Tests
   ProductBinPath: '$(ProductDir)\bin\$(BuildConfiguration)\$(TargetFramework)'
@@ -237,10 +239,10 @@ steps:
 
 # pack release NuGet package
 - task: NuGetCommand@2
-  displayName: 'NuGet - pack Microsoft.AspNetCore.OData.Authorization.Release.nuspec '
+  displayName: 'NuGet - pack Microsoft.OData.WebAuthorization.Release.nuspec '
   inputs:
     command: custom
-    arguments: 'pack $(ProductDir)\$(ProductName).Release.nuspec -NonInteractive -OutputDirectory $(Build.ArtifactStagingDirectory)\Nuget -Properties Configuration=$(BuildConfiguration);ProductRoot=$(ProductBinPath);SourcesRoot=$(Build.SourcesDirectory);VersionFullSemantic=$(VersionFullSemantic);VersionNuGetSemantic=$(VersionNuGetSemantic);ODataWebApiPackageDependency="$(ODataWebApiPackageDependency)" -Verbosity Detailed -Symbols -Symbols -SymbolPackageFormat snupkg'
+    arguments: 'pack $(ProductDir)\$(PackageName).Release.nuspec -NonInteractive -OutputDirectory $(Build.ArtifactStagingDirectory)\Nuget -Properties Configuration=$(BuildConfiguration);ProductRoot=$(ProductBinPath);SourcesRoot=$(Build.SourcesDirectory);VersionFullSemantic=$(VersionFullSemantic);VersionNuGetSemantic=$(VersionNuGetSemantic);ODataWebApiPackageDependency="$(ODataWebApiPackageDependency)" -Verbosity Detailed -Symbols -Symbols -SymbolPackageFormat snupkg'
 
 # Sign NuGet packages
 - task: EsrpCodeSigning@1
