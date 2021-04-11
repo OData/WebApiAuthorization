@@ -533,9 +533,9 @@ namespace Microsoft.AspNetCore.OData.Authorization
             var schemeProperty = permissionRecord.FindProperty("SchemeName")?.Value as IEdmStringConstantExpression;
             var scopesProperty = permissionRecord.FindProperty("Scopes")?.Value as IEdmCollectionExpression;
 
-            var scopes = scopesProperty.Elements.Select(s => GetScopeData(s as IEdmRecordExpression));
+            var scopes = scopesProperty?.Elements.Select(s => GetScopeData(s as IEdmRecordExpression)) ?? Enumerable.Empty<PermissionScopeData>();
 
-            return new PermissionData() { SchemeName = schemeProperty.Value, Scopes = scopes.ToList() };
+            return new PermissionData() { SchemeName = schemeProperty?.Value, Scopes = scopes.ToList() };
         }
 
         private static PermissionScopeData GetScopeData(IEdmRecordExpression scopeRecord)
