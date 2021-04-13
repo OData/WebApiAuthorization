@@ -15,8 +15,6 @@ schedules:
   branches:
     include:
     - master
-    # remove authorization branch from schedule after it has been merged
-    - authorization
 
 pool:
   vmImage: 'windows-latest'
