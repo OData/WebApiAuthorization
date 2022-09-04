@@ -1,11 +1,15 @@
-﻿using Microsoft.AspNet.OData;
-using Microsoft.AspNet.OData.Routing;
+﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.OData.Authorization.Tests.Models;
+using Microsoft.AspNetCore.OData.Query;
+using Microsoft.AspNetCore.OData.Routing.Parser;
+using Microsoft.AspNetCore.OData.Routing.Template;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.OData;
 using Microsoft.OData.Edm;
 using Microsoft.OData.UriParser;
+using Moq;
 using System;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace Microsoft.AspNetCore.OData.Authorization.Tests
@@ -15,7 +19,7 @@ namespace Microsoft.AspNetCore.OData.Authorization.Tests
 
         IEdmModel _model = TestModel.GetModelWithPermissions();
         string _serviceRoot = "http://odata/";
-        DefaultODataPathHandler _parser = new DefaultODataPathHandler();
+        DefaultODataPathTemplateParser _parser = new DefaultODataPathTemplateParser();
         IServiceProvider _serviceProvider;
 
         public ODataModelPermissionExtractorTest()
@@ -77,7 +81,8 @@ namespace Microsoft.AspNetCore.OData.Authorization.Tests
         [InlineData("DELETE", "Products(10)/RoutingCustomers(10)", "Product.Update,ProductCustomers.Delete")]
         public void PermissionEvaluator_ReturnsTrue_IfScopesMatchRequiredPermissions(string method, string endpoint, string userScopes)
         {
-            var path = _parser.Parse(_serviceRoot, endpoint, _serviceProvider);
+            var path = Parse(_model, new Uri(_serviceRoot), new Uri(endpoint, UriKind.Relative), _serviceProvider);
+
             var scopesList = userScopes.Split(',');
 
             var permissionHandler = _model.ExtractPermissionsForRequest(method, path);
@@ -92,12 +97,34 @@ namespace Microsoft.AspNetCore.OData.Authorization.Tests
         [InlineData("GET", "Products(10)/RoutingCustomers", "ProductCustomers.Read")]
         public void PermissionEvaluator_ReturnsFalse_IfRequiredScopesNotFound(string method, string endpoint, string userScopes)
         {
-            var path = _parser.Parse(_serviceRoot, endpoint, _serviceProvider);
-            var scopesList = userScopes.Split(',');
+            var path = Parse(_model, new Uri(_serviceRoot), new Uri(endpoint, UriKind.Relative), _serviceProvider);
 
+            var scopesList = userScopes.Split(',');
+            
             var permissionHandler = _model.ExtractPermissionsForRequest(method, path);
 
             Assert.False(permissionHandler.AllowsScopes(scopesList));
+        }
+
+        /// <inheritdoc />
+        public virtual ODataPath Parse(IEdmModel model, Uri serviceRoot, Uri odataPath, IServiceProvider requestProvider)
+        {
+            ODataUriParser uriParser;
+            if (serviceRoot != null)
+            {
+                uriParser = new ODataUriParser(model, serviceRoot, odataPath, requestProvider);
+            }
+            else
+            {
+                uriParser = new ODataUriParser(model, odataPath, requestProvider);
+            }
+
+            uriParser.Resolver = uriParser.Resolver ?? new UnqualifiedODataUriResolver { EnableCaseInsensitive = true };
+            uriParser.UrlKeyDelimiter = ODataUrlKeyDelimiter.Slash; // support key in parentheses and key as segment.
+
+            // The ParsePath throws OData exceptions if the odata path is not valid.
+            // That's expected.
+            return uriParser.ParsePath();
         }
     }
 }

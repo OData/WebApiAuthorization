@@ -5,9 +5,9 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
-using Microsoft.AspNet.OData.Builder;
 using Microsoft.OData.Edm;
 using Microsoft.OData.Edm.Vocabularies;
+using Microsoft.OData.ModelBuilder;
 
 namespace Microsoft.AspNetCore.OData.Authorization.Tests.Models
 {
@@ -20,7 +20,7 @@ namespace Microsoft.AspNetCore.OData.Authorization.Tests.Models
             builder.EntitySet<Product>("Products");
             builder.EntitySet<SalesPerson>("SalesPeople");
             builder.EntitySet<EmailAddress>("EmailAddresses");
-            builder.EntitySet<üCategory>("üCategories");
+            builder.EntitySet<Category>("Categories");
             builder.Singleton<RoutingCustomer>("VipCustomer");
             builder.Singleton<Product>("MyProduct");
             builder.EntitySet<DateTimeOffsetKeyCustomer>("DateTimeOffsetKeyCustomers");
@@ -436,7 +436,7 @@ namespace Microsoft.AspNetCore.OData.Authorization.Tests.Models
             public virtual SalesPerson LeadSalesPerson { get; set; }
         }
 
-        public class üCategory
+        public class Category
         {
             public int ID { get; set; }
         }

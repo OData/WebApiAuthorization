@@ -1,9 +1,9 @@
-﻿using System;
-using System.Diagnostics.Contracts;
-// Copyright (c) Microsoft Corporation.  All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.  All rights reserved.
 // Licensed under the MIT License.  See License.txt in the project root for license information.
 
-using Microsoft.AspNet.OData.Interfaces;
+using Microsoft.Extensions.DependencyInjection;
+using System;
+using System.Diagnostics.Contracts;
 
 namespace Microsoft.AspNetCore.OData.Authorization.Extensions
 {
@@ -14,26 +14,27 @@ namespace Microsoft.AspNetCore.OData.Authorization.Extensions
         /// </summary>
         /// <param name="odataBuilder"></param>
         /// <returns></returns>
-        public static IODataBuilder AddAuthorization(this IODataBuilder odataBuilder)
+        public static IMvcBuilder AddODataAuthorization(this IMvcBuilder builder)
         {
-            Contract.Assert(odataBuilder != null);
+            Contract.Assert(builder != null);
 
-            odataBuilder.Services.AddODataAuthorization();
-            return odataBuilder;
+            builder.Services.AddODataAuthorization();
+
+            return builder;
         }
 
         /// <summary>
         /// Adds OData model-based authorization services
         /// </summary>
-        /// <param name="odataBuilder"></param>
+        /// <param name="builder"></param>
         /// <param name="configureODataAuth">Action to configure the authorization options</param>
         /// <returns></returns>
-        public static IODataBuilder AddAuthorization(this IODataBuilder odataBuilder, Action<ODataAuthorizationOptions> configureODataAuth)
+        public static IMvcBuilder AddODataAuthorization(this IMvcBuilder builder, Action<ODataAuthorizationOptions> configureODataAuth)
         {
-            Contract.Assert(odataBuilder != null);
+            Contract.Assert(builder != null);
 
-            odataBuilder.Services.AddODataAuthorization(configureODataAuth);
-            return odataBuilder;
+            builder.Services.AddODataAuthorization(configureODataAuth);
+            return builder;
         }
     }
 }

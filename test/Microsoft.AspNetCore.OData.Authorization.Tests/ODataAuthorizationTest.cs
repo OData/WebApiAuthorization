@@ -1,18 +1,23 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Reflection;
 using System.Security.Claims;
 using System.Threading.Tasks;
-using Microsoft.AspNet.OData;
-using Microsoft.AspNet.OData.Extensions;
-using Microsoft.AspNet.OData.Routing;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ApplicationParts;
+using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.AspNetCore.OData.Authorization.Tests.Abstractions;
 using Microsoft.AspNetCore.OData.Authorization.Tests.Extensions;
 using Microsoft.AspNetCore.OData.Authorization.Tests.Models;
+using Microsoft.AspNetCore.OData.Query;
+using Microsoft.AspNetCore.OData.Routing.Controllers;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -20,11 +25,82 @@ using Xunit;
 
 namespace Microsoft.AspNetCore.OData.Authorization.Tests
 {
+    /// <summary>
+    /// Controller feature provider
+    /// </summary>
+    public class WebODataControllerFeatureProvider : IApplicationFeatureProvider<ControllerFeature>, IApplicationFeatureProvider
+    {
+        private Type[] _controllers;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="WebODataControllerFeatureProvider"/> class.
+        /// </summary>
+        /// <param name="controllers">The controllers</param>
+        public WebODataControllerFeatureProvider(params Type[] controllers)
+        {
+            _controllers = controllers;
+        }
+
+        /// <summary>
+        /// Updates the feature instance.
+        /// </summary>
+        /// <param name="parts">The list of <see cref="ApplicationPart" /> instances in the application.</param>
+        /// <param name="feature">The controller feature.</param>
+        public void PopulateFeature(IEnumerable<ApplicationPart> parts, ControllerFeature feature)
+        {
+            if (_controllers == null)
+            {
+                return;
+            }
+
+            feature.Controllers.Clear();
+            foreach (var type in _controllers)
+            {
+                feature.Controllers.Add(type.GetTypeInfo());
+            }
+        }
+    }
+
+    /// <summary>
+    /// Extension for <see cref="IServiceCollection"/>.
+    /// </summary>
+    public static class ServiceCollectionExtensions
+    {
+        /// <summary>
+        /// Config the controller provider.
+        /// </summary>
+        /// <param name="services">The service collection.</param>
+        /// <param name="controllers">The configured controllers.</param>
+        /// <returns>The caller.</returns>
+        public static IServiceCollection ConfigureControllers(this IServiceCollection services, params Type[] controllers)
+        {
+            if (services == null)
+            {
+                throw new ArgumentNullException(nameof(services));
+            }
+
+            services.AddControllers()
+                .ConfigureApplicationPartManager(pm =>
+                {
+                    pm.FeatureProviders.Add(new WebODataControllerFeatureProvider(controllers));
+                });
+
+            return services;
+        }
+    }
+
     public class ODataAuthorizationTest
     {
         private readonly HttpClient _client;
 
         public ODataAuthorizationTest()
+        {
+            var server = CreateServer();
+
+            _client = server.CreateClient();
+        }
+
+        private TestServer CreateServer()
         {
             var model = TestModel.GetModelWithPermissions();
 
@@ -40,31 +116,47 @@ namespace Microsoft.AspNetCore.OData.Authorization.Tests
                 typeof(IncidentGroupsController)
             };
 
-            var server = TestServerFactory.CreateWithEndpointRouting(controllers, endpoints =>
-            {
-                endpoints.MapODataRoute("odata", "odata", model);
-            }, services =>
-            {
-                services.AddODataAuthorization((options) =>
+            var builder = new WebHostBuilder()
+                .ConfigureServices(services =>
                 {
-                    options.ScopesFinder = (context) =>
+                    services.AddHttpContextAccessor();
+
+                    services
+                        .AddControllers()
+                        .AddOData((opt) =>
+                        {
+                            opt.AddRouteComponents("odata", model).EnableQueryFeatures().Select().Expand().OrderBy().Filter().Count();
+                        });
+
+                    services.ConfigureControllers(controllers);
+
+                    services.AddODataAuthorization((options) =>
                     {
-                        var permissions = context.User?.FindAll("Permission").Select(p => p.Value);
-                        return Task.FromResult(permissions ?? Enumerable.Empty<string>());
-                    };
+                        options.ScopesFinder = (context) =>
+                        {
+                            var permissions = context.User?.FindAll("Permission").Select(p => p.Value);
 
-                    options.ConfigureAuthentication("AuthScheme")
-                    .AddScheme<CustomAuthOptions, CustomAuthHandler>("AuthScheme", options => { });
-                });
+                            return Task.FromResult(permissions ?? Enumerable.Empty<string>());
+                        };
 
-                services.AddRouting();
-            }, app =>
-            {
-                app.UseAuthentication();
-                app.UseODataAuthorization();
-            });
+                        options
+                            .ConfigureAuthentication("AuthScheme")
+                            .AddScheme<CustomAuthOptions, CustomAuthHandler>("AuthScheme", options => { });
+                    });
+                })
+    .Configure(app =>
+    {
+        app.UseRouting();
+        app.UseAuthentication();
+        app.UseODataAuthorization();
 
-            _client = TestServerFactory.CreateClient(server);
+        app.UseEndpoints(endpoints =>
+        {
+            endpoints.MapControllers();
+        });
+    });
+
+            return new TestServer(builder);
         }
 
 
@@ -264,6 +356,8 @@ namespace Microsoft.AspNetCore.OData.Authorization.Tests
 
     public class ProductsController : ODataController
     {
+        [HttpGet]
+        [EnableQuery]
         public string Get()
         {
             return "GET Products";
@@ -384,7 +478,7 @@ namespace Microsoft.AspNetCore.OData.Authorization.Tests
             return $"GetProductCustomers({key})";
         }
 
-        [ODataRoute("Products({key})/RoutingCustomers({relatedKey})/$ref")]
+        [HttpGet("Products({key})/RoutingCustomers({relatedKey})/$ref")]
         public string GetRefToRoutingCustomers(int key, int relatedKey)
         {
             return $"GetProductCustomerRef({key}, {relatedKey})";
@@ -400,8 +494,7 @@ namespace Microsoft.AspNetCore.OData.Authorization.Tests
             return $"CreateProductCustomerRef({key})";
         }
 
-        [HttpGet]
-        [ODataRoute("Products({key})/RoutingCustomers({relatedKey})/Address/Street")]
+        [HttpGet("Products({key})/RoutingCustomers({relatedKey})/Address/Street")]
         public string GetProductRoutingCustomerAddressStreet(int key, int relatedKey)
         {
             return "GetProductRoutingCustomerAddressStreet";
@@ -507,15 +600,13 @@ namespace Microsoft.AspNetCore.OData.Authorization.Tests
             return "GetSalesPeopleOnVIP()";
         }
 
-        [HttpPost]
-        [ODataRoute("GetRoutingCustomerById")]
+        [HttpPost("GetRoutingCustomerById")]
         public string GetRoutingCustomerById()
         {
             return "GetRoutingCustomerById";
         }
 
-        [HttpGet]
-        [ODataRoute("UnboundFunction")]
+        [HttpGet("UnboundFunction")]
         public string UnboundFunction()
         {
             return "UnboundFunction";
@@ -568,7 +659,7 @@ namespace Microsoft.AspNetCore.OData.Authorization.Tests
 
     public class IncidentGroupsController : ODataController
     {
-        [ODataRoute("IncidentGroups({key})/Incidents")]
+        [HttpGet("IncidentGroups({key})/Incidents")]
         public string GetIncidents(int key)
         {
             return $"GetIncidentGroupIncidents({key})";

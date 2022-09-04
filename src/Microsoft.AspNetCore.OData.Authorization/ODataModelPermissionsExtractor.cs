@@ -4,7 +4,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Microsoft.AspNet.OData.Extensions;
 using Microsoft.OData.Edm;
 using Microsoft.OData.Edm.Vocabularies;
 using Microsoft.OData.UriParser;
@@ -13,9 +12,8 @@ namespace Microsoft.AspNetCore.OData.Authorization
 {
     internal static class ODataModelPermissionsExtractor
     {
-        internal static IScopesEvaluator ExtractPermissionsForRequest(this IEdmModel model, string method, AspNet.OData.Routing.ODataPath odataPath)
+        internal static IScopesEvaluator ExtractPermissionsForRequest(this IEdmModel model, string method, ODataPath odataPath)
         {
-            var template = odataPath.PathTemplate;
             ODataPathSegment prevSegment = null;
 
             var segments = new List<ODataPathSegment>();
@@ -24,17 +22,17 @@ namespace Microsoft.AspNetCore.OData.Authorization
             // with a logical AND
             var permissionsChain = new WithAndScopesCombiner();
 
-            var lastSegmentIndex = odataPath.Segments.Count - 1;
+            var lastSegmentIndex = odataPath.Count - 1;
 
-            if (template.EndsWith("$ref", StringComparison.OrdinalIgnoreCase))
+            if (odataPath.ToString().EndsWith("$ref", StringComparison.OrdinalIgnoreCase))
             {
                 // for ref segments, we apply the permission of the entity that contains the navigation property
                 // e.g. for GET Customers(10)/Products/$ref, we apply the read key permissions of Customers
                 // for GET TopCustomer/Products/$ref, we apply the read permissions of TopCustomer
                 // for DELETE Customers(10)/Products(10)/$ref we apply the update permissions of Customers
-                lastSegmentIndex = odataPath.Segments.Count - 2;
-                while (!(odataPath.Segments[lastSegmentIndex] is KeySegment || odataPath.Segments[lastSegmentIndex] is SingletonSegment || odataPath.Segments[lastSegmentIndex] is NavigationPropertySegment)
-                    && lastSegmentIndex > 0)
+                lastSegmentIndex = odataPath.Count - 2;
+
+                while (!(odataPath.ElementAt(lastSegmentIndex) is KeySegment || odataPath.ElementAt(lastSegmentIndex) is SingletonSegment || odataPath.ElementAt(lastSegmentIndex) is NavigationPropertySegment) && lastSegmentIndex > 0)
                 {
                     lastSegmentIndex--;
                 }
@@ -42,7 +40,7 @@ namespace Microsoft.AspNetCore.OData.Authorization
 
             for (int i = 0; i <= lastSegmentIndex; i++)
             {
-                var segment = odataPath.Segments[i];
+                var segment = odataPath.ElementAt(i);
                 
                 if (segment is EntitySetSegment ||
                         segment is SingletonSegment ||
@@ -317,27 +315,28 @@ namespace Microsoft.AspNetCore.OData.Authorization
         }
 
 
-        static bool IsNextSegmentKey(AspNet.OData.Routing.ODataPath path, int currentPos)
+        static bool IsNextSegmentKey(ODataPath path, int currentPos)
         {
             return IsNextSegmentOfType<KeySegment>(path, currentPos);
         }
 
-        static bool IsNextSegmentOfType<T>(AspNet.OData.Routing.ODataPath path, int currentPos)
+        static bool IsNextSegmentOfType<T>(ODataPath path, int currentPos)
         {
-            var maxPos = path.Segments.Count - 1;
+            var maxPos = path.Count - 1;
+
             if (maxPos <= currentPos)
             {
                 return false;
             }
 
-            var nextSegment = path.Segments[currentPos + 1];
+            var nextSegment = path.ElementAt(currentPos + 1);
 
             if (nextSegment is T)
             {
                 return true;
             }
 
-            if (nextSegment is TypeSegment && maxPos >= currentPos + 2 && path.Segments[currentPos + 2] is T)
+            if (nextSegment is TypeSegment && maxPos >= currentPos + 2 && path.ElementAt(currentPos + 2) is T)
             {
                 return true;
             }

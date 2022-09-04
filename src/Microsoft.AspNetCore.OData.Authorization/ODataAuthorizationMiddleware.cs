@@ -5,10 +5,16 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.AspNetCore.Mvc.Authorization;
-using Microsoft.AspNet.OData.Extensions;
 using Microsoft.OData.Edm;
 using Microsoft.AspNetCore.Authorization;
 using System.Diagnostics.Contracts;
+using Microsoft.AspNetCore.OData.Extensions;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.AspNetCore.Mvc.Infrastructure;
+using Microsoft.AspNetCore.OData.Query;
+using System.Linq;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Controllers;
 
 namespace Microsoft.AspNetCore.OData.Authorization
 {
@@ -37,18 +43,28 @@ namespace Microsoft.AspNetCore.OData.Authorization
             Contract.Assert(context != null);
 
             var odataFeature = context.ODataFeature();
+
             if (odataFeature == null || odataFeature.Path == null)
             {
                 return _next(context);
             }
 
             IEdmModel model = context.Request.GetModel();
+
             if (model == null)
             {
                 return _next(context);
             }
 
+            if (odataFeature.SelectExpandClause == null)
+            {
+                var queryOptions = new ODataQueryOptions(new ODataQueryContext(model, odataFeature.Path.Last(x => x.EdmType != null).EdmType.AsElementType(), odataFeature.Path), context.Request);
+
+                odataFeature.SelectExpandClause = queryOptions.SelectExpand?.SelectExpandClause;
+            }
+
             var permissions = model.ExtractPermissionsForRequest(context.Request.Method, odataFeature.Path);
+
             ApplyRestrictions(permissions, context);
 
             return _next(context);
@@ -57,14 +73,24 @@ namespace Microsoft.AspNetCore.OData.Authorization
         private static void ApplyRestrictions(IScopesEvaluator handler, HttpContext context)
         {
             var requirement = new ODataAuthorizationScopesRequirement(handler);
-            var policy = new AuthorizationPolicyBuilder().AddRequirements(requirement).Build();
+
+            var policy = new AuthorizationPolicyBuilder()
+                .RequireAuthenticatedUser()
+                .AddRequirements(requirement)
+                .Build();
 
             // We use the AuthorizeFilter instead of relying on the built-in authorization middleware
             // because we cannot add new metadata to the endpoint in the middle of a request
             // and OData's current implementation of endpoint routing does not allow for
             // adding metadata to individual routes ahead of time
             var authFilter = new AuthorizeFilter(policy);
-            context.ODataFeature().ActionDescriptor?.FilterDescriptors?.Add(new FilterDescriptor(authFilter, 0));
+
+            var controllerActionDescriptor = context.GetEndpoint().Metadata.GetMetadata<ControllerActionDescriptor>();
+
+            if(controllerActionDescriptor != null)
+            {
+                controllerActionDescriptor.FilterDescriptors?.Add(new FilterDescriptor(authFilter, 0));
+            }
         }
 
     }
