@@ -1,7 +1,8 @@
 ﻿using AspNetCore3ODataPermissionsSample.Models;
-using Microsoft.AspNet.OData;
-using Microsoft.AspNet.OData.Routing;
+
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.OData.Query;
+using Microsoft.AspNetCore.OData.Routing.Controllers;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -110,49 +111,49 @@ namespace AspNetCore3ODataPermissionsSample.Controllers
             return Ok(customer);
         }
 
-        [ODataRoute("GetTopCustomer")]
+        [HttpGet("GetTopCustomer")]
         public IActionResult GetTopCustomer()
         {
             return Ok(_context.Customers.FirstOrDefault());
         }
 
-        [ODataRoute("Customers({key})/GetAge")]
+        [HttpGet("Customers({key})/GetAge")]
         public IActionResult GetAge(int key)
         {
             return Ok(_context.Customers.Find(key).Id + 20);
         }
 
-        [ODataRoute("Customers({key})/Orders")]
+        [HttpGet("Customers({key})/Orders")]
         public IActionResult GetCustomerOrders(int key)
         {
             return Ok(_context.Customers.Find(key).Orders);
         }
 
-        [ODataRoute("Customers({key})/Orders({relatedKey})")]
+        [HttpGet("Customers({key})/Orders({relatedKey})")]
         public IActionResult GetCustomerOrder(int key, int relatedKey)
         {
             return Ok(_context.Customers.Find(key).Orders.FirstOrDefault(o => o.Id == relatedKey));
         }
 
-        [ODataRoute("Customers({key})/Orders({relatedKey})/Title")]
+        [HttpGet("Customers({key})/Orders({relatedKey})/Title")]
         public IActionResult GetOrderTitleByKey(int key, int relatedKey)
         {
             return Ok(_context.Customers.Find(key)?.Orders.FirstOrDefault(o => o.Id == relatedKey)?.Title);
         }
 
-        [ODataRoute("Customers({key})/Orders({relatedKey})/$ref")]
+        [HttpGet("Customers({key})/Orders({relatedKey})/$ref")]
         public IActionResult GetCustomerOrderByKeyRef(int key, int relatedKey)
         {
             return Ok(_context.Customers.Find(key)?.Orders.FirstOrDefault(o => o.Id == relatedKey));
         }
 
-        [ODataRoute("Customers({key})/Order")]
+        [HttpGet("Customers({key})/Order")]
         public IActionResult GetOrder(int key)
         {
             return Ok(_context.Customers.Find(key).Order);
         }
 
-        [ODataRoute("Customers({key})/Order/Title")]
+        [HttpGet("Customers({key})/Order/Title")]
         public IActionResult GetOrderTitle(int key)
         {
             return Ok(_context.Customers.Find(key)?.Order?.Title);

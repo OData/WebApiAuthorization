@@ -1,6 +1,7 @@
 ﻿using System.Threading.Tasks;
-using Microsoft.AspNet.OData;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.OData.Deltas;
+using Microsoft.AspNetCore.OData.Routing.Controllers;
 using ODataAuthorizationDemo.Models;
 
 namespace ODataAuthorizationDemo.Controllers

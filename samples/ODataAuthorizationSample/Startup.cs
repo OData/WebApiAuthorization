@@ -1,15 +1,13 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
 using System.Security.Principal;
 using System.Threading.Tasks;
 using AspNetCore3ODataPermissionsSample.Models;
-using Microsoft.AspNet.OData.Extensions;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.OData;
 using Microsoft.AspNetCore.OData.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -33,7 +31,31 @@ namespace AspNetCore3ODataPermissionsSample
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddDbContext<AppDbContext>(opt => opt.UseLazyLoadingProxies().UseInMemoryDatabase("CustomerOrderList"));
-            services.AddOData();
+                        services.AddCors(options =>
+            {
+                options.AddPolicy("AllowAll",
+                    builder =>
+                    {
+                        builder
+                            .AllowAnyOrigin()
+                            .AllowAnyMethod()
+                            .AllowAnyHeader();
+                    });
+            });
+
+            services
+                .AddControllers()
+                .AddOData((opt) =>
+                {
+                    opt.RouteOptions.EnableActionNameCaseInsensitive = true;
+                    opt.RouteOptions.EnableControllerNameCaseInsensitive = true;
+                    opt.RouteOptions.EnablePropertyNameCaseInsensitive = true;
+
+                    opt
+                        .AddRouteComponents("odata", AppModel.GetEdmModel())
+                        .EnableQueryFeatures().Select().Expand().OrderBy().Filter().Count();
+                });
+
 
             // add OData authorization services
             services.AddODataAuthorization((options) =>
@@ -73,17 +95,17 @@ namespace AspNetCore3ODataPermissionsSample
                 app.UseDeveloperExceptionPage();
             }
 
+            app.UseCors("AllowAll");
+
             app.UseRouting();
 
             app.UseAuthentication();
-            // add OData authorization middleware
-            // we don't need to UseAuthorization() if we don't need to handle authorizaiton for non-odata routes
+
             app.UseODataAuthorization();
 
             app.UseEndpoints(endpoints =>
             {
-                endpoints.Expand().Filter().Count().OrderBy();
-                endpoints.MapODataRoute("odata", "odata", AppModel.GetEdmModel());
+                endpoints.MapControllers();
             });
         }
     }

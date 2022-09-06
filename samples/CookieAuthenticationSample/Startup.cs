@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.AspNet.OData.Extensions;
 using Microsoft.AspNetCore.OData.Authorization.Extensions;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Builder;
@@ -15,6 +14,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using ODataAuthorizationDemo.Models;
 using Microsoft.AspNetCore.OData.Authorization;
+using Microsoft.AspNetCore.OData;
 
 namespace ODataAuthorizationDemo
 {
@@ -32,19 +32,42 @@ namespace ODataAuthorizationDemo
         {
             services.AddDbContext<AppDbContext>(opt => opt.UseInMemoryDatabase("ODataAuthDemo"));
 
-            services.AddOData()
-                .AddAuthorization(options =>
-                {
-                    options.ScopesFinder = context =>
+            services.AddCors(options =>
+            {
+                options.AddPolicy("AllowAll",
+                    builder =>
                     {
-                        var scopes = context.User.FindAll("Scope").Select(claim => claim.Value);
-                        return Task.FromResult(scopes);
-                    };
+                        builder
+                            .AllowAnyOrigin()
+                            .AllowAnyMethod()
+                            .AllowAnyHeader();
+                    });
+            });
 
-                    options.ConfigureAuthentication(CookieAuthenticationDefaults.AuthenticationScheme).AddCookie();
+            services
+                .AddControllers()
+                .AddOData((opt) =>
+                {
+                    opt.RouteOptions.EnableActionNameCaseInsensitive = true;
+                    opt.RouteOptions.EnableControllerNameCaseInsensitive = true;
+                    opt.RouteOptions.EnablePropertyNameCaseInsensitive = true;
+
+                    opt
+                        .AddRouteComponents("odata", AppEdmModel.GetModel())
+                        .EnableQueryFeatures().Select().Expand().OrderBy().Filter().Count();
                 });
 
-            services.AddRouting();
+            services.AddODataAuthorization(options =>
+            {
+                options.ScopesFinder = context =>
+                {
+                    var scopes = context.User.FindAll("Scope").Select(claim => claim.Value);
+
+                    return Task.FromResult(scopes);
+                };
+
+                options.ConfigureAuthentication(CookieAuthenticationDefaults.AuthenticationScheme).AddCookie();
+            });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -55,6 +78,8 @@ namespace ODataAuthorizationDemo
                 app.UseDeveloperExceptionPage();
             }
 
+            app.UseCors("AllowAll");
+
             app.UseRouting();
 
             app.UseAuthentication();
@@ -63,8 +88,7 @@ namespace ODataAuthorizationDemo
 
             app.UseEndpoints(endpoints =>
             {
-                endpoints.Expand().Filter().Count().OrderBy();
-                endpoints.MapODataRoute("odata", "odata", AppEdmModel.GetModel());
+                endpoints.MapControllers();
             });
         }
     }
