@@ -144,17 +144,11 @@ namespace Microsoft.AspNetCore.OData.Authorization.Tests.Models
             functionBoundToProductWithMultipleParamters.Parameter<string>("P3");
             functionBoundToProductWithMultipleParamters.Returns<int>();
 
-            // Overloaded bound function with no parameter
-            builder.EntityType<Product>().Function("FunctionBoundToProduct").Returns<int>();
-
-            // Overloaded bound function with one parameter
-            builder.EntityType<Product>().Function("FunctionBoundToProduct").Returns<int>().Parameter<int>("P1");
-
             // Overloaded bound function with multiple parameters
             var functionBoundToProduct = builder.EntityType<Product>().Function("FunctionBoundToProduct").Returns<int>();
-            functionBoundToProduct.Parameter<int>("P1");
-            functionBoundToProduct.Parameter<int>("P2");
-            functionBoundToProduct.Parameter<string>("P3");
+            functionBoundToProduct.Parameter<int>("P1").Optional();
+            functionBoundToProduct.Parameter<int>("P2").Optional();
+            functionBoundToProduct.Parameter<string>("P3").Optional();
 
             // Unbound function with one parameter
             var unboundFunctionWithOneParamters = builder.Function("UnboundFunctionWithOneParamters");
@@ -227,10 +221,10 @@ namespace Microsoft.AspNetCore.OData.Authorization.Tests.Models
             var vipCustomer = model.FindDeclaredSingleton("VipCustomer");
             var salesPeople = model.FindDeclaredEntitySet("SalesPeople");
             var incidentGroups = model.FindDeclaredEntitySet("IncidentGroups");
-            var productFunction = model.SchemaElements.OfType<IEdmOperation>()
-                .First(o => o.Name == "FunctionBoundToProduct" && o.Parameters.Count() == 1);
-            var productFunction2 = model.SchemaElements.OfType<IEdmOperation>()
-                .First(o => o.Name == "FunctionBoundToProduct" && o.Parameters.Count() == 2);
+            //var productFunction = model.SchemaElements.OfType<IEdmOperation>()
+            //    .First(o => o.Name == "FunctionBoundToProduct" && o.Parameters.Count() == 1);
+            //var productFunction2 = model.SchemaElements.OfType<IEdmOperation>()
+            //    .First(o => o.Name == "FunctionBoundToProduct" && o.Parameters.Count() == 2);
             var productFunction3 = model.SchemaElements.OfType<IEdmOperation>()
                 .First(o => o.Name == "FunctionBoundToProduct" && o.Parameters.Count() == 4);
             var topProduct = model.SchemaElements.OfType<IEdmOperation>().First(o => o.Name == "TopProductOfAll");
@@ -263,8 +257,8 @@ namespace Microsoft.AspNetCore.OData.Authorization.Tests.Models
 
             PermissionsHelper.AddPermissionsTo(model, incidentGroups, readRestrictions, "IncidentGroup.Read");
 
-            PermissionsHelper.AddPermissionsTo(model, productFunction, operationRestrictions, "Product.Function");
-            PermissionsHelper.AddPermissionsTo(model, productFunction2, operationRestrictions, "Product.Function2");
+            //PermissionsHelper.AddPermissionsTo(model, productFunction, operationRestrictions, "Product.Function");
+            //PermissionsHelper.AddPermissionsTo(model, productFunction2, operationRestrictions, "Product.Function2");
             PermissionsHelper.AddPermissionsTo(model, productFunction3, operationRestrictions, "Product.Function3");
             PermissionsHelper.AddPermissionsTo(model, topProduct, operationRestrictions, "Product.Top");
             PermissionsHelper.AddPermissionsTo(model, getRoutingCustomerById, operationRestrictions, "GetRoutingCustomerById");
