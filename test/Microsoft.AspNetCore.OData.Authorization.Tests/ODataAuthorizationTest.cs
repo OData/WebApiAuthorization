@@ -274,11 +274,14 @@ namespace Microsoft.AspNetCore.OData.Authorization.Tests
         [InlineData("GET", "SalesPeople(10)/SomeProperty", "SalesPerson.ReadByKey", "GetSalesPersonDynamicProperty(10, SomeProperty)")]
         [InlineData("GET", "MyProduct/Microsoft.AspNetCore.OData.Authorization.Tests.Models.SpecialProduct/FunctionBoundToProduct()", "Product.Function3", "FunctionBoundToProduct()")]
         [InlineData("GET", "Products(10)/Microsoft.AspNetCore.OData.Authorization.Tests.Models.SpecialProduct/FunctionBoundToProduct()", "Product.Function3", "FunctionBoundToProduct(10)")]
+        // $expand
+        [InlineData("GET", "Products?$expand=RoutingCustomers", "Product.ReadAll,ProductCustomers.Read", "GET Products")]
+        [InlineData("GET", "Products?$expand=RoutingCustomers($expand=Products)", "Product.Read,ProductCustomers.Read,CustomerProducts.Read", "GET Products")]
         // TODO: Failing. Unclear Routing Conventions for $ref.
-        [InlineData("GET", "Products(10)/RoutingCustomers(20)/$ref", "Product.ReadByKey", "GetProductCustomerRef(10, 20)", Skip = "Does not work in ASP.NET Core OData 8 yet")]
-        [InlineData("POST", "MyProduct/Microsoft.AspNetCore.OData.Authorization.Tests.Models.SpecialProduct/RoutingCustomers/$ref", "MyProduct.Update", "CreateMyProductCustomerRef", Skip = "Does not work in ASP.NET Core OData 8 yet")]
-        [InlineData("DELETE", "Products(10)/Microsoft.AspNetCore.OData.Authorization.Tests.Models.SpecialProduct/RoutingCustomers(20)/$ref", "Product.Update", "DeleteProductCustomerRef(10, 20)", Skip = "Does not work in ASP.NET Core OData 8 yet")]
-        [InlineData("DELETE", "MyProduct/RoutingCustomers(20)/$ref", "MyProduct.Update", "DeleteMyProductCustomerRef(20)", Skip = "Does not work in ASP.NET Core OData 8 yet")]
+        [InlineData("GET", "Products(10)/RoutingCustomers(20)/$ref", "Product.ReadByKey", "GetProductCustomerRef(10, 20)", Skip = "Requires Unclear Routing")]
+        [InlineData("POST", "MyProduct/Microsoft.AspNetCore.OData.Authorization.Tests.Models.SpecialProduct/RoutingCustomers/$ref", "MyProduct.Update", "CreateMyProductCustomerRef", Skip = "Requires Unclear Routing")]
+        [InlineData("DELETE", "Products(10)/Microsoft.AspNetCore.OData.Authorization.Tests.Models.SpecialProduct/RoutingCustomers(20)/$ref", "Product.Update", "DeleteProductCustomerRef(10, 20)", Skip = "Requires Unclear Routing")]
+        [InlineData("DELETE", "MyProduct/RoutingCustomers(20)/$ref", "MyProduct.Update", "DeleteMyProductCustomerRef(20)", Skip = "Requires Unclear Routing")]
         // TODO: Failing. Method not allowed for MERGE.
         [InlineData("MERGE", "Products(10)", "Product.Update", "PATCH Products(10)", Skip = "Method Not Allowed")]
         [InlineData("MERGE", "Products(10)/Microsoft.AspNetCore.OData.Authorization.Tests.Models.SpecialProduct", "Product.Update", "PATCH SpecialProduct(10)", Skip = "Method Not Allowed")]
@@ -545,12 +548,8 @@ namespace Microsoft.AspNetCore.OData.Authorization.Tests
         }
 
         [HttpGet]
+        [HttpGet("odata/Products({key})/RoutingCustomers({relatedKey})/$ref")]
         public string GetRefToRoutingCustomers(int key, int relatedKey)
-        {
-            return $"GetProductCustomerRef({key}, {relatedKey})";
-        }
-
-        public string GetRefToRoutingCustomersFromSpecialProduct(int key, int relatedKey)
         {
             return $"GetProductCustomerRef({key}, {relatedKey})";
         }
@@ -572,7 +571,7 @@ namespace Microsoft.AspNetCore.OData.Authorization.Tests
         {
             return $"CreateProductCustomerRef({key})";
         }
-
+        
         [HttpGet("odata/Products({key})/RoutingCustomers({relatedKey})/Address/Street")]
         public string GetProductRoutingCustomerAddressStreet([FromODataUri] int key, int relatedKey)
         {

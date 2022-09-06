@@ -85,7 +85,7 @@ namespace Microsoft.AspNetCore.OData.Authorization.Tests
 
             var scopesList = userScopes.Split(',');
 
-            var permissionHandler = _model.ExtractPermissionsForRequest(method, path);
+            var permissionHandler = _model.ExtractPermissionsForRequest(method, path, null);
 
             Assert.True(permissionHandler.AllowsScopes(scopesList));
         }
@@ -101,7 +101,7 @@ namespace Microsoft.AspNetCore.OData.Authorization.Tests
 
             var scopesList = userScopes.Split(',');
             
-            var permissionHandler = _model.ExtractPermissionsForRequest(method, path);
+            var permissionHandler = _model.ExtractPermissionsForRequest(method, path, null);
 
             Assert.False(permissionHandler.AllowsScopes(scopesList));
         }

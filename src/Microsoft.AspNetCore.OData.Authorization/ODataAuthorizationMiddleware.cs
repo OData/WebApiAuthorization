@@ -56,6 +56,7 @@ namespace Microsoft.AspNetCore.OData.Authorization
                 return _next(context);
             }
 
+            // At this point in the Middleware the SelectExpandClause hasn't been evaluated (https://github.com/OData/WebApiAuthorization/issues/4)
             if (odataFeature.SelectExpandClause == null)
             {
                 var queryOptions = new ODataQueryOptions(new ODataQueryContext(model, odataFeature.Path.Last(x => x.EdmType != null).EdmType.AsElementType(), odataFeature.Path), context.Request);
@@ -63,7 +64,7 @@ namespace Microsoft.AspNetCore.OData.Authorization
                 odataFeature.SelectExpandClause = queryOptions.SelectExpand?.SelectExpandClause;
             }
 
-            var permissions = model.ExtractPermissionsForRequest(context.Request.Method, odataFeature.Path);
+            var permissions = model.ExtractPermissionsForRequest(context.Request.Method, odataFeature.Path, odataFeature.SelectExpandClause);
 
             ApplyRestrictions(permissions, context);
 

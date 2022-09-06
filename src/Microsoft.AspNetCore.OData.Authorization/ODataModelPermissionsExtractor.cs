@@ -12,7 +12,7 @@ namespace Microsoft.AspNetCore.OData.Authorization
 {
     internal static class ODataModelPermissionsExtractor
     {
-        internal static IScopesEvaluator ExtractPermissionsForRequest(this IEdmModel model, string method, ODataPath odataPath)
+        internal static IScopesEvaluator ExtractPermissionsForRequest(this IEdmModel model, string method, ODataPath odataPath, SelectExpandClause selectExpandClause)
         {
             ODataPathSegment prevSegment = null;
 
@@ -147,7 +147,6 @@ namespace Microsoft.AspNetCore.OData.Authorization
                             continue;
                         }
 
-
                         // if Customers(key), then we'll handle it when we reach the key segment
                         // so that we can properly handle ReadByKeyRestrictions
                         if (IsNextSegmentKey(odataPath, i))
@@ -181,6 +180,17 @@ namespace Microsoft.AspNetCore.OData.Authorization
                         permissionsChain.Add(new WithOrScopesCombiner(operationPermissions));
                     }
                 }
+            }
+
+
+            // add permission for expanded properties
+            var expandNavigationPaths = ExtractExpandedNavigationProperties(selectExpandClause, segments);
+
+            foreach (var expandNavigationPath in expandNavigationPaths)
+            {
+                var navigationPathList = expandNavigationPath.ToList();
+                var expandedPathEvaluator = GetNavigationPropertyReadPermissions(navigationPathList, navigationPathList.OfType<KeySegment>().Any(), model);
+                permissionsChain.Add(new WithOrScopesCombiner(expandedPathEvaluator));
             }
 
             return permissionsChain;
@@ -255,6 +265,22 @@ namespace Microsoft.AspNetCore.OData.Authorization
 
             return new DefaultScopesEvaluator();
         }
+        
+        private static IEnumerable<IEnumerable<ODataPathSegment>> ExtractExpandedNavigationProperties(SelectExpandClause selectExpandClause, IEnumerable<ODataPathSegment> root)
+        {
+            if (selectExpandClause != null)
+            {
+                foreach (var navigationSelectItem in selectExpandClause.SelectedItems.OfType<ExpandedNavigationSelectItem>())
+                {
+                    yield return root.Concat(navigationSelectItem.PathToNavigationProperty);
+
+                    foreach (var childNavigationSelectItem in ExtractExpandedNavigationProperties(navigationSelectItem.SelectAndExpand, navigationSelectItem.PathToNavigationProperty))
+                    {
+                        yield return childNavigationSelectItem;
+                    }
+                }
+            }
+        }
 
         private static IScopesEvaluator GetNavigationPropertyPropertyOperationPermisions(IList<ODataPathSegment> pathSegments, bool isTargetByKey, IEdmModel model, string method)
         {
@@ -314,6 +340,48 @@ namespace Microsoft.AspNetCore.OData.Authorization
             return new DefaultScopesEvaluator();
         }
 
+        private static IScopesEvaluator GetNavigationPropertyReadPermissions(IList<ODataPathSegment> pathSegments, bool isTargetByKey, IEdmModel model)
+        {
+            var expectedPath = GetPathFromSegments(pathSegments);
+            IEdmVocabularyAnnotatable root = (pathSegments[0] as EntitySetSegment)?.EntitySet as IEdmVocabularyAnnotatable ?? (pathSegments[0] as SingletonSegment)?.Singleton ?? (pathSegments[0] as NavigationPropertySegment)?.NavigationSource as IEdmVocabularyAnnotatable;
+
+            var navRestrictions = root.VocabularyAnnotations(model).Where(a => a.Term.FullName() == ODataCapabilityRestrictionsConstants.NavigationRestrictions);
+            foreach (var restriction in navRestrictions)
+            {
+                if (restriction.Value is IEdmRecordExpression record)
+                {
+                    var temp = record.FindProperty("RestrictedProperties");
+                    if (temp?.Value is IEdmCollectionExpression restrictedProperties)
+                    {
+                        foreach (var item in restrictedProperties.Elements)
+                        {
+                            if (item is IEdmRecordExpression restrictedProperty)
+                            {
+                                var navigationProperty = restrictedProperty.FindProperty("NavigationProperty").Value as IEdmPathExpression;
+                                if (navigationProperty?.Path == expectedPath)
+                                {
+                                    var readRestrictions = restrictedProperty.FindProperty("ReadRestrictions")?.Value as IEdmRecordExpression;
+
+                                    var readPermissions = ExtractPermissionsFromRecord(readRestrictions);
+                                    var evaluator = new WithOrScopesCombiner(readPermissions);
+
+                                    if (isTargetByKey)
+                                    {
+                                        var readByKeyRestrictions = readRestrictions.FindProperty("ReadByKeyRestrictions")?.Value as IEdmRecordExpression;
+                                        var readByKeyPermissions = ExtractPermissionsFromRecord(readByKeyRestrictions);
+                                        evaluator.AddRange(readByKeyPermissions);
+                                    }
+
+                                    return evaluator;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            return new DefaultScopesEvaluator();
+        }
 
         static bool IsNextSegmentKey(ODataPath path, int currentPos)
         {
