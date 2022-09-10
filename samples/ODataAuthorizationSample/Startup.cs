@@ -100,7 +100,7 @@ namespace AspNetCore3ODataPermissionsSample
             app.UseRouting();
 
             app.UseAuthentication();
-
+            
             app.UseODataAuthorization();
 
             app.UseEndpoints(endpoints =>

@@ -15,6 +15,7 @@ using Microsoft.Extensions.Logging;
 using ODataAuthorizationDemo.Models;
 using Microsoft.AspNetCore.OData.Authorization;
 using Microsoft.AspNetCore.OData;
+using Microsoft.AspNetCore.Http;
 
 namespace ODataAuthorizationDemo
 {
@@ -46,16 +47,9 @@ namespace ODataAuthorizationDemo
 
             services
                 .AddControllers()
-                .AddOData((opt) =>
-                {
-                    opt.RouteOptions.EnableActionNameCaseInsensitive = true;
-                    opt.RouteOptions.EnableControllerNameCaseInsensitive = true;
-                    opt.RouteOptions.EnablePropertyNameCaseInsensitive = true;
-
-                    opt
-                        .AddRouteComponents("odata", AppEdmModel.GetModel())
-                        .EnableQueryFeatures().Select().Expand().OrderBy().Filter().Count();
-                });
+                .AddOData((opt) => opt
+                    .AddRouteComponents("odata", AppEdmModel.GetModel())
+                    .EnableQueryFeatures());
 
             services.AddODataAuthorization(options =>
             {
@@ -66,7 +60,27 @@ namespace ODataAuthorizationDemo
                     return Task.FromResult(scopes);
                 };
 
-                options.ConfigureAuthentication(CookieAuthenticationDefaults.AuthenticationScheme).AddCookie();
+                options
+                    .ConfigureAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+                    // Configure the Authentication, so it returns a 401 for unauthorized access:
+                    .AddCookie((options) =>
+                    {
+                        options.AccessDeniedPath = string.Empty;
+
+                        options.Events.OnRedirectToAccessDenied = (context) =>
+                        {
+                            context.Response.StatusCode = StatusCodes.Status403Forbidden;
+
+                            return Task.CompletedTask;
+                        };
+
+                        options.Events.OnRedirectToLogin = (context) =>
+                        {
+                            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+
+                            return Task.CompletedTask;
+                        };
+                    });
             });
         }
 
@@ -83,9 +97,8 @@ namespace ODataAuthorizationDemo
             app.UseRouting();
 
             app.UseAuthentication();
-
+            app.UseAuthorization();
             app.UseODataAuthorization();
-
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllers();

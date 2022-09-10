@@ -91,12 +91,11 @@ namespace Microsoft.AspNetCore.OData.Authorization
             var authFilter = new AuthorizeFilter(policy);
 
             var controllerActionDescriptor = context.GetEndpoint().Metadata.GetMetadata<ControllerActionDescriptor>();
-
+            
             if(controllerActionDescriptor != null)
             {
                 controllerActionDescriptor.FilterDescriptors?.Add(new FilterDescriptor(authFilter, 0));
             }
         }
-
     }
 }
