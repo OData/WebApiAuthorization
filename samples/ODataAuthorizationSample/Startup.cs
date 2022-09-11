@@ -16,6 +16,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ODataAuthorizationSample.Data;
+using Microsoft.AspNetCore.OData.Authorization.Extensions;
 
 namespace AspNetCore3ODataPermissionsSample
 {
@@ -47,32 +48,31 @@ namespace AspNetCore3ODataPermissionsSample
 
             services
                 .AddControllers()
+                // Enable OData Functionality
                 .AddOData((opt) =>
                 {
                     opt
                         .AddRouteComponents("odata", AppModel.GetEdmModel())
                         .EnableQueryFeatures().Select().Expand().OrderBy().Filter().Count();
-                });
-
-
-            // add OData authorization services
-            services.AddODataAuthorization((options) =>
-            {
-                // we setup a custom scope finder that will extract the user's scopes from the Permission claims
-                options.ScopesFinder = (context) =>
+                })
+                // Enable Authorization on OData Endpoints
+                .AddODataAuthorization((options) =>
                 {
-                    var permissions = context.User?.FindAll("Permission");
-                    if (permissions == null)
+                    // we setup a custom scope finder that will extract the user's scopes from the Permission claims
+                    options.ScopesFinder = (context) =>
                     {
-                        return Task.FromResult(Enumerable.Empty<string>());
-                    }
-
-                    return Task.FromResult(permissions.Select(p => p.Value));
-                };
+                        var permissions = context.User?.FindAll("Permission");
+                        if (permissions == null)
+                        {
+                            return Task.FromResult(Enumerable.Empty<string>());
+                        }
+    
+                        return Task.FromResult(permissions.Select(p => p.Value));
+                    };
 
                 options.ConfigureAuthentication("AuthScheme")
                     .AddScheme<CustomAuthenticationOptions, CustomAuthenticationHandler>("AuthScheme", options => { });
-            });
+                });
 
             // OData authorization depends on the AspNetCore authentication and authorization services
             // we need to specify at least one authentication scheme and handler. Here we opt for a simple custom handler defined

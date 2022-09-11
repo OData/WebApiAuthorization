@@ -1,17 +1,13 @@
-using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.OData.Authorization.Extensions;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using ODataAuthorizationDemo.Models;
 using Microsoft.AspNetCore.OData.Authorization;
 using Microsoft.AspNetCore.OData;
@@ -49,38 +45,37 @@ namespace ODataAuthorizationDemo
                 .AddControllers()
                 .AddOData((opt) => opt
                     .AddRouteComponents("odata", AppEdmModel.GetModel())
-                    .EnableQueryFeatures());
-
-            services.AddODataAuthorization(options =>
-            {
-                options.ScopesFinder = context =>
+                    .EnableQueryFeatures())
+                .AddODataAuthorization((options) =>
                 {
-                    var scopes = context.User.FindAll("Scope").Select(claim => claim.Value);
-
-                    return Task.FromResult(scopes);
-                };
-
-                options
-                    .ConfigureAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-                    // Configure the Authentication, so it returns a 401 for unauthorized access:
-                    .AddCookie((options) =>
+                    options.ScopesFinder = context =>
                     {
-                        options.AccessDeniedPath = string.Empty;
+                        var scopes = context.User.FindAll("Scope").Select(claim => claim.Value);
 
-                        options.Events.OnRedirectToAccessDenied = (context) =>
+                        return Task.FromResult(scopes);
+                    };
+
+                    options
+                        .ConfigureAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+                        // Configure the Authentication, so it returns a 401 for unauthorized access:
+                        .AddCookie((options) =>
                         {
-                            context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                            options.AccessDeniedPath = string.Empty;
 
-                            return Task.CompletedTask;
-                        };
+                            options.Events.OnRedirectToAccessDenied = (context) =>
+                            {
+                                context.Response.StatusCode = StatusCodes.Status403Forbidden;
 
-                        options.Events.OnRedirectToLogin = (context) =>
-                        {
-                            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                                return Task.CompletedTask;
+                            };
 
-                            return Task.CompletedTask;
-                        };
-                    });
+                            options.Events.OnRedirectToLogin = (context) =>
+                            {
+                                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+
+                                return Task.CompletedTask;
+                            };
+                        });
             });
         }
 
