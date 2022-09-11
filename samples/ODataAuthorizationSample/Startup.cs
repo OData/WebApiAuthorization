@@ -15,6 +15,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using ODataAuthorizationSample.Data;
 
 namespace AspNetCore3ODataPermissionsSample
 {
@@ -30,8 +31,9 @@ namespace AspNetCore3ODataPermissionsSample
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddDbContext<AppDbContext>(opt => opt.UseLazyLoadingProxies().UseInMemoryDatabase("CustomerOrderList"));
-                        services.AddCors(options =>
+            services.AddDbContext<AppDbContext>(opt => opt.UseSqlite($"Filename={Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)}/TestDatabase.db"));
+
+            services.AddCors(options =>
             {
                 options.AddPolicy("AllowAll",
                     builder =>
@@ -47,10 +49,6 @@ namespace AspNetCore3ODataPermissionsSample
                 .AddControllers()
                 .AddOData((opt) =>
                 {
-                    opt.RouteOptions.EnableActionNameCaseInsensitive = true;
-                    opt.RouteOptions.EnableControllerNameCaseInsensitive = true;
-                    opt.RouteOptions.EnablePropertyNameCaseInsensitive = true;
-
                     opt
                         .AddRouteComponents("odata", AppModel.GetEdmModel())
                         .EnableQueryFeatures().Select().Expand().OrderBy().Filter().Count();
@@ -83,7 +81,6 @@ namespace AspNetCore3ODataPermissionsSample
             //    .AddScheme<CustomAuthentationOptions, CustomAuthenticationHandler>("AuthScheme", options => { });
             //services.AddAuthorization();
             
-
             services.AddRouting();
         }
 
@@ -107,6 +104,8 @@ namespace AspNetCore3ODataPermissionsSample
             {
                 endpoints.MapControllers();
             });
+
+            DatabaseUtils.CreateDatabaseAndSampleData(app.ApplicationServices);
         }
     }
 

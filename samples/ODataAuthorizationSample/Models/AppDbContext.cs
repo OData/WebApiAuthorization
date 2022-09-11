@@ -2,7 +2,7 @@
 
 namespace AspNetCore3ODataPermissionsSample.Models
 {
-    public class AppDbContext : DbContext
+    public partial class AppDbContext : DbContext
     {
         public AppDbContext(DbContextOptions<AppDbContext> options)
             : base(options)
@@ -15,7 +15,12 @@ namespace AspNetCore3ODataPermissionsSample.Models
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            modelBuilder.Entity<Customer>().OwnsOne(c => c.HomeAddress).WithOwner();
+            modelBuilder.Entity<Customer>()
+                .OwnsOne(c => c.HomeAddress)
+                .WithOwner();
+
+            modelBuilder.Entity<Customer>()
+                .OwnsMany(x => x.FavoriteAddresses, cb => cb.HasKey("Id"));
         }
     }
 }

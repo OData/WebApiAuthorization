@@ -12,6 +12,9 @@ using Microsoft.AspNetCore.OData.Extensions;
 using Microsoft.AspNetCore.OData.Query;
 using System.Linq;
 using Microsoft.AspNetCore.Mvc.Controllers;
+using Microsoft.AspNetCore.OData.Abstracts;
+using Microsoft.Extensions.Logging;
+using System;
 
 namespace Microsoft.AspNetCore.OData.Authorization
 {
@@ -20,14 +23,16 @@ namespace Microsoft.AspNetCore.OData.Authorization
     /// </summary>
     public class ODataAuthorizationMiddleware
     {
-        private RequestDelegate _next;
+        private readonly RequestDelegate _next;
+        private readonly ILogger<ODataAuthorizationMiddleware> _logger;
 
         /// <summary>
         /// Instantiates a new instance of <see cref="ODataAuthorizationMiddleware"/>.
         /// </summary>
-        public ODataAuthorizationMiddleware(RequestDelegate next)
+        public ODataAuthorizationMiddleware(ILogger<ODataAuthorizationMiddleware> logger, RequestDelegate next)
         {
             _next = next;
+            _logger = logger;
         }
 
         /// <summary>
@@ -53,26 +58,44 @@ namespace Microsoft.AspNetCore.OData.Authorization
                 return _next(context);
             }
 
-            // At this point in the Middleware the SelectExpandClause hasn't been evaluated (https://github.com/OData/WebApiAuthorization/issues/4)
-            if (odataFeature.SelectExpandClause == null)
-            {
-                var elementType = odataFeature.Path.LastOrDefault(x => x.EdmType != null);
-
-                if (elementType != null)
-                {
-                    var queryOptions = new ODataQueryOptions(
-                        new ODataQueryContext(model, elementType.EdmType.AsElementType(), odataFeature.Path),
-                        context.Request);
-
-                    odataFeature.SelectExpandClause = queryOptions.SelectExpand?.SelectExpandClause;
-                }
-            }
-
+            // At this point in the Middleware the SelectExpandClause hasn't been evaluated (https://github.com/OData/WebApiAuthorization/issues/4),
+            // but it's needed to provide securing $expand-statements, so you can't request expanded data without permissions.
+            ParseSelectExpandClause(context, model, odataFeature);
+            
             var permissions = model.ExtractPermissionsForRequest(context.Request.Method, odataFeature.Path, odataFeature.SelectExpandClause);
 
             ApplyRestrictions(permissions, context);
 
             return _next(context);
+        }
+
+        private void ParseSelectExpandClause(HttpContext httpContext, IEdmModel model, IODataFeature odataFeature)
+        {
+            if(odataFeature == null)
+            {
+                return;
+            }
+
+            if(odataFeature.SelectExpandClause != null)
+            {
+                return;
+            }
+
+            try
+            {
+                var elementType = odataFeature.Path.LastOrDefault(x => x.EdmType != null);
+
+                if (elementType != null)
+                {
+                    var queryOptions = new ODataQueryOptions(new ODataQueryContext(model, elementType.EdmType.AsElementType(), odataFeature.Path), httpContext.Request);
+
+                    odataFeature.SelectExpandClause = queryOptions.SelectExpand?.SelectExpandClause;
+                }
+            } 
+            catch(Exception e)
+            {
+                _logger.LogInformation(e, "Failed to parse SelectExpandClause");
+            }
         }
 
         private static void ApplyRestrictions(IScopesEvaluator handler, HttpContext context)
