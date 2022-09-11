@@ -1,11 +1,7 @@
-# OData WebApiAuthorization Extensions
+# OData WebApi Authorization extensions
 
-This library uses the permissions defined in the [capability annotations](https://github.com/oasis-tcs/odata-vocabularies/blob/master/vocabularies/Org.OData.Capabilities.V1.md) of the 
-OData model to apply authorization policies to an OData service based on `Microsoft.AspNetCore.OData`.
-
-This repository is a fork of [WebApiAuthroization] library, which has been updated to ASP.NET Core OData 8 and .NET 6.
-
-[WebApiAuthorization]: https://github.com/OData/WebApiAuthorization
+This library uses the permissions defined in the [capability annotations](https://github.com/oasis-tcs/odata-vocabularies/blob/master/vocabularies/Org.OData.Capabilities.V1.md) of the OData model to apply authorization policies
+to an OData service based on `Microsoft.AspNetCore.OData`.
 
 ## Usage
 
